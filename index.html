@@ -1,0 +1,2722 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticker — Robinhood Chain Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --mint:#23CBA1; --mint-2:#1DBD92; --mint-deep:#0FA37F; --mint-ink:#0B6B55;
+        --paper:#F6FAF8; --card:#FFFFFF;
+        --ink:#173B36; --ink-2:#537A72; --muted:#8AA69F;
+        --line:rgba(23,59,54,.10); --line-2:rgba(23,59,54,.16);
+        --up:#0EAF7E; --down:#F45531;
+        --sans:"Quicksand",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+        --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+        --radius:16px;
+      }
+      *{box-sizing:border-box} html,body{margin:0;min-height:100%}
+      body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+      .app{max-width:1180px;margin:0 auto;padding:18px 18px 46px}
+      a{color:var(--mint-deep);text-decoration:none} a:hover{text-decoration:underline}
+      .grow{flex:1}
+      .dots{background-image:radial-gradient(rgba(255,255,255,.16) 1.1px,transparent 1.35px);background-size:13px 13px}
+
+      /* hero */
+      .hero{background:linear-gradient(160deg,#2BCFA6 0%,#1CBE90 100%);border-radius:20px;padding:22px 26px 24px;color:#fff;box-shadow:0 14px 40px rgba(20,170,130,.25);margin-bottom:18px}
+      .hero-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+      .wordmark{font-weight:300;font-size:27px;letter-spacing:.5px;color:#fff}
+      .chip{font-size:11px;font-weight:600;letter-spacing:.4px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:3px 10px;border-radius:999px}
+      .demo{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:9px 14px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:var(--sans)}
+      .demo:hover{background:rgba(255,255,255,.26)}
+      .wallet-pill{display:flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:5px 5px 5px 14px;box-shadow:0 4px 14px rgba(11,90,70,.18)}
+      .wallet-pill input{background:transparent;border:0;color:var(--ink);font-family:var(--mono);font-size:12.5px;width:320px;max-width:40vw;outline:none}
+      .wallet-pill button{border:0;background:var(--mint-deep);color:#fff;border-radius:999px;padding:8px 16px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:var(--sans)}
+      .wallet-pill button:hover{background:var(--mint-ink)}
+      .hero-value{font-weight:300;font-size:54px;letter-spacing:.5px;line-height:1.05}
+      .hero-sub{margin-top:6px;font-size:13.5px;color:rgba(255,255,255,.85);font-weight:500}
+      .hero-pnl{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.16);font-size:18px;font-weight:700;color:#fff;letter-spacing:.2px}
+      .hero-pnl .lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,.78);letter-spacing:.3px}
+      .status{margin-top:14px;font-size:12px;color:rgba(255,255,255,.8);font-family:var(--mono)}
+      .status .ok{color:#fff;font-weight:700} .status .bad{color:#FFE3D9;font-weight:700}
+      .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(15,163,127,.25);border-top-color:var(--mint-deep);border-radius:50%;animation:s .8s linear infinite;vertical-align:-2px}
+      .status .spin{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+      @keyframes s{to{transform:rotate(360deg)}}
+
+      /* tabs + tools */
+      .tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+      .tab{border:1px solid var(--line);background:#fff;color:var(--ink-2);padding:8px 16px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;font-family:var(--sans)}
+      .tab:hover{border-color:var(--line-2);color:var(--ink)}
+      .tab.active{background:var(--mint);border-color:var(--mint);color:#fff}
+      .tab .cnt{font-size:11px;background:rgba(23,59,54,.07);color:var(--ink-2);border-radius:999px;padding:1px 7px}
+      .tab.active .cnt{background:rgba(255,255,255,.22);color:#fff}
+      .listtools{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;color:var(--ink-2)}
+      .exportbtn{border:1px solid var(--line-2);background:#fff;color:var(--mint-ink);border-radius:999px;padding:7px 14px;
+        font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:border-color .15s,background .15s,transform .12s}
+      .exportbtn:hover{border-color:var(--mint);background:#F2FAF7}
+      .exportbtn:active{transform:scale(.96)}
+      /* odometer digits sit in uniform, centered cells — proportional digits
+         (a skinny "1" in a wide column) were tearing gaps into the total */
+      .odo .dcol{width:1ch}
+      .odo .dstack span{text-align:center}
+      .dust{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+      .dust input{accent-color:var(--mint-deep);width:15px;height:15px;cursor:pointer}
+
+      /* table */
+      .tablecard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:0 6px 24px rgba(23,59,54,.05)}
+      table{width:100%;border-collapse:collapse}
+      thead th{text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600;padding:13px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+      thead th:first-child{text-align:left}
+      tbody td{padding:13px 16px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+      tbody tr{cursor:pointer;transition:background .12s} tbody tr:hover{background:#F2FAF7} tbody tr:last-child td{border-bottom:0}
+      .asset{display:flex;align-items:center;gap:11px;text-align:left}
+      .asset .ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-weight:700;font-size:11px;color:#fff;flex:none}
+      .asset .nm{display:flex;flex-direction:column;gap:2px;min-width:0}
+      .asset .nm b{font-size:13.5px;font-weight:600} .asset .nm .t{font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+      .catchip{font-size:10px;padding:1px 7px;border-radius:6px;font-weight:700}
+      .muted{color:var(--muted)}
+      .empty{padding:52px 20px;text-align:center;color:var(--ink-2)} .empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:6px;font-weight:600}
+      .foot{color:var(--muted);font-size:11.5px;margin-top:16px;line-height:1.6}
+      .chg.up,.up{color:var(--up)} .chg.down,.down{color:var(--down)}
+
+      /* detail */
+      .detail{display:none}
+      .dhero{background:linear-gradient(160deg,#2BCFA6,#1CBE90);border-radius:20px;padding:18px 22px 22px;color:#fff;box-shadow:0 14px 40px rgba(20,170,130,.22);margin-bottom:16px}
+      .back{display:inline-flex;align-items:center;gap:8px;color:#fff;background:rgba(255,255,255,.16);border:0;border-radius:999px;padding:8px 15px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:16px;font-family:var(--sans)}
+      .back:hover{background:rgba(255,255,255,.26)}
+      .dhead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+      .dhead .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff}
+      .icw{display:inline-block;flex:none;line-height:0}
+      .ic-img{object-fit:cover;background:#fff;display:block}
+      .asset .icw .ic-img{width:34px;height:34px;border-radius:11px}
+      .dhead .icw .ic-img{width:52px;height:52px;border-radius:16px}
+      .dhead h2{margin:0;font-size:22px;font-weight:500;display:flex;align-items:center;gap:10px}
+      .dhead .t{color:rgba(255,255,255,.85);font-size:12.5px;margin-top:4px}
+      .dhero a{color:#fff;text-decoration:underline dotted}
+      .dhero .addr{color:#fff}
+      .dhero .catchip{color:#fff !important;background:rgba(255,255,255,.2) !important}
+      .catsel{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;font-size:11px;padding:2px 6px;font-family:var(--sans);cursor:pointer}
+      .catsel option{color:#173B36}
+      .dhero .chg.up,.dhero .chg.down{color:#fff}
+      .dprice{margin-left:auto;text-align:right}
+      .dprice .p{font-size:40px;font-weight:300;letter-spacing:.5px}
+      .dprice .d{font-size:12.5px;color:rgba(255,255,255,.85);font-weight:600}
+
+      .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 14px}
+      .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 4px 16px rgba(23,59,54,.04)}
+      .stat .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;font-weight:600}
+      .stat .v{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+      .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:14px;box-shadow:0 4px 16px rgba(23,59,54,.04)}
+      .panel h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-2);font-weight:700}
+      .banner{background:#E7F8F2;border:1px solid #BFEBDD;color:#0B6B55;border-radius:12px;padding:10px 14px;font-size:12.5px;margin:10px 0}
+      .banner.warn{background:#FDEEE7;border-color:#F6CBB5;color:#8A3B1E;margin-bottom:14px}
+      .sus{color:var(--down);font-weight:700;font-size:11.5px}
+      .pos-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+      .pos-summary .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;font-weight:600}
+      .pos-summary .v{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
+      .lots{width:100%;border-collapse:collapse;margin-top:6px}
+      .lots th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600}
+      .lots th:first-child{text-align:left}
+      .lots td{padding:10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-size:13px;font-weight:500}
+      .lots td:first-child{text-align:left}
+      .lots tr:last-child td{border-bottom:0}
+      .costin{background:#F2F8F6;border:1px solid var(--line-2);color:var(--ink);border-radius:8px;padding:4px 9px;width:100px;text-align:right;font-family:var(--mono);font-size:12.5px;outline:none}
+      .costin:focus{border-color:var(--mint-deep)}
+      .pcur{color:var(--muted);margin-right:3px}
+      .tag{font-size:10px;padding:1px 7px;border-radius:6px;font-weight:700}
+      .tag.auto{color:#0B6B55;background:#DDF5EC} .tag.manual{color:#8A5A00;background:#FBEED3}
+      .seg{display:inline-flex;background:#EFF6F3;border:1px solid var(--line);border-radius:999px;padding:3px}
+      .seg button{border:0;background:transparent;color:var(--ink-2);padding:5px 12px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:600;font-family:var(--sans)}
+      .seg button.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(23,59,54,.12)}
+      .addr{font-family:var(--mono);font-size:12px;color:var(--mint-deep)}
+      @media(max-width:820px){.statgrid,.pos-summary{grid-template-columns:repeat(2,1fr)}.col-hide{display:none}.wallet-pill input{width:150px}.hero-value{font-size:40px}}
+
+      /* ---- landing page: rolling live prices, Robinhood style ---- */
+      body.landing-on .app{display:none}
+      body:not(.landing-on) #landing{display:none}
+      #landing{min-height:100vh;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(160deg,#2BCFA6 0%,#1CBE90 100%);color:#fff;text-align:center}
+      .land-inner{padding:40px 22px;display:flex;flex-direction:column;align-items:center;gap:0}
+      .land-welcome{font-weight:300;font-size:96px;letter-spacing:2px;line-height:1}
+      .land-sub{margin-top:10px;font-size:14.5px;color:rgba(255,255,255,.82);font-weight:500}
+      .land-stage{margin:52px 0 46px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .3s ease,transform .3s ease}
+      .land-stage.swap{opacity:0;transform:translateY(10px)}
+      .land-logo{display:block;width:64px;height:64px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.14);
+        box-shadow:0 0 0 3px rgba(255,255,255,.35), 0 8px 24px rgba(11,90,70,.25);margin-bottom:14px;transition:opacity .45s ease,transform .15s;cursor:pointer}
+      .land-logo:active{transform:scale(.93)}
+      #toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(14px);z-index:200;
+        background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;padding:10px 18px;border-radius:999px;
+        opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;font-family:var(--sans);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+      #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+      .icw[data-caddr]{cursor:pointer}
+      .icw[data-caddr]:active{transform:scale(.93)}
+      .icw{transition:transform .12s}
+
+      /* ---- Track transition, three quiet beats:
+             1) the search page COLLAPSES into itself
+             2) one green sheet RISES from where the pill was and settles as the hero
+             3) the information POPULATES — hero lines, then the table ---- */
+      .sv-logo,.chainpick,.sv-pill,.sv-hint{transition:transform .3s cubic-bezier(.55,0,.6,.35),opacity .26s ease}
+      #searchview.collapse .sv-logo{transform:scale(.86) translateY(14px);opacity:0}
+      #searchview.collapse .chainpick{transform:scale(.9) translateY(8px);opacity:0;transition-delay:.03s}
+      #searchview.collapse .sv-pill{transform:scale(.94);opacity:0;transition-delay:.06s}
+      #searchview.collapse .sv-hint{opacity:0}
+      .riser{position:fixed;z-index:140;border-radius:20px;pointer-events:none;
+        background:linear-gradient(160deg,#2BCFA6 0%,#1CBE90 100%);box-shadow:0 14px 40px rgba(20,170,130,.25);
+        transition:left .52s cubic-bezier(.25,.75,.22,1),top .52s cubic-bezier(.25,.75,.22,1),
+                   width .52s cubic-bezier(.25,.75,.22,1),height .52s cubic-bezier(.25,.75,.22,1)}
+      .riser.gone{opacity:0;transition:opacity .34s ease}
+      .hero.veil{opacity:0}
+      #listview.veil2{opacity:0}
+      .hero.arrive>*{animation:heroKid .5s cubic-bezier(.2,.8,.25,1) both}
+      .hero.arrive>*:nth-child(1){animation-delay:.02s}.hero.arrive>*:nth-child(2){animation-delay:.09s}
+      .hero.arrive>*:nth-child(3){animation-delay:.15s}.hero.arrive>*:nth-child(4){animation-delay:.21s}
+      .hero.arrive>*:nth-child(5){animation-delay:.27s}.hero.arrive>*:nth-child(6){animation-delay:.32s}
+      @keyframes heroKid{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+      #listview.arrive2{animation:listIn .55s .18s cubic-bezier(.2,.8,.25,1) both}
+      @keyframes listIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+      .land-sym{font-size:15px;font-weight:600;letter-spacing:3px;color:rgba(255,255,255,.85);min-height:20px;text-transform:uppercase;transition:opacity .35s}
+      .odo{display:inline-flex;margin-top:10px;font-weight:300;font-size:82px;line-height:1;color:#fff;letter-spacing:2px;font-variant-numeric:tabular-nums}
+      .odo .stat2{display:inline-block}
+      .odo .dcol{display:inline-block;height:1em;overflow:hidden}
+      .odo .dstack{display:flex;flex-direction:column;transition:transform .95s cubic-bezier(.24,.75,.22,1)}
+      .odo.noanim .dstack{transition:none}
+      .odo .dstack span{height:1em;display:block}
+      .land-chg{margin-top:16px;font-size:15px;font-weight:600;min-height:22px;letter-spacing:.5px;transition:opacity .35s}
+      .land-chg.pos{color:#EAFFF7}.land-chg.neg{color:#FFE3D9}
+      .land-start{border:0;background:#fff;color:var(--mint-deep);border-radius:999px;padding:15px 52px;
+        font-size:16.5px;font-weight:700;letter-spacing:.4px;cursor:pointer;font-family:var(--sans);
+        box-shadow:0 10px 30px rgba(11,90,70,.28);transition:transform .18s, box-shadow .18s}
+      .land-start:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(11,90,70,.34)}
+      .land-note{margin-top:22px;font-size:11.5px;color:rgba(255,255,255,.62);font-weight:500;letter-spacing:.4px}
+      @media(max-width:600px){.odo{font-size:56px}.land-welcome{font-size:58px}}
+
+      /* ---- pro polish: motion & depth ---- */
+      .hero{position:relative;overflow:hidden}
+      .hero>*{position:relative;z-index:1}
+      .hero::before{content:"";position:absolute;inset:-40%;z-index:0;pointer-events:none;
+        background:radial-gradient(620px 400px at 18% -5%,rgba(255,255,255,.17),transparent 62%),
+                   radial-gradient(520px 340px at 92% 115%,rgba(11,107,85,.28),transparent 62%);
+        animation:heroDrift 16s ease-in-out infinite alternate}
+      @keyframes heroDrift{from{transform:translate3d(-2%,-2%,0) scale(1)}to{transform:translate3d(2%,3%,0) scale(1.07)}}
+      .hero-value.odo{display:inline-flex;font-size:54px;letter-spacing:.5px;margin-top:0;font-weight:300}
+      @media(max-width:820px){.hero-value.odo{font-size:40px}}
+      .hero-pnl{animation:pillin .5s cubic-bezier(.2,.9,.3,1.35) both}
+      @keyframes pillin{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
+      thead th{position:sticky;top:0;background:#fff;z-index:2}
+      tr.rowin{animation:rowin .5s cubic-bezier(.2,.8,.25,1) both}
+      @keyframes rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+      td.fl-up{animation:cellUp .9s ease-out}
+      td.fl-down{animation:cellDown .9s ease-out}
+      @keyframes cellUp{0%{background:rgba(14,175,126,.16)}100%{background:transparent}}
+      @keyframes cellDown{0%{background:rgba(244,85,49,.13)}100%{background:transparent}}
+      .fl-up .tickwrap,.fl-down .tickwrap{display:inline-block;animation:tickslide .45s cubic-bezier(.2,.8,.25,1)}
+      @keyframes tickslide{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+      .tab{transition:background .18s,color .18s,border-color .18s,transform .12s,box-shadow .18s}
+      .tab:active{transform:scale(.96)}
+      .tab.active{box-shadow:0 6px 18px rgba(20,170,130,.28)}
+      .wallet-pill button,.demo,.back,.land-start{transition:background .16s,transform .12s}
+      .wallet-pill button:active,.demo:active,.back:active{transform:scale(.95)}
+      .tablecard{transition:box-shadow .25s}
+      .tablecard:hover{box-shadow:0 12px 36px rgba(23,59,54,.09)}
+
+      /* ---- centered search state: nothing shows until a wallet is entered ---- */
+      body.pre header, body.pre #listview, body.pre #detailview{display:none}
+      body:not(.pre) #searchview{display:none}
+      #searchview{min-height:76vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;animation:svin .55s cubic-bezier(.2,.8,.25,1) both}
+      @keyframes svin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+      .sv-logo{font-weight:300;font-size:64px;letter-spacing:1px;line-height:1;color:var(--mint-deep)}
+      /* gradient lives on each letter cell — a parent-level background-clip:text
+         goes invisible the moment its descendants are transformed (the roll) */
+      .sv-logo .lstack span{background:linear-gradient(160deg,#2BCFA6 15%,#0FA37F 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+      /* custom chain picker — the native select popup is unstylable (square, blue) */
+      .chainpick{position:relative}
+      .cp-btn{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line-2);background:#fff;color:var(--ink);
+        font-family:var(--sans);font-weight:600;font-size:13.5px;padding:10px 18px;border-radius:999px;cursor:pointer;outline:none;
+        box-shadow:0 4px 14px rgba(23,59,54,.06);transition:border-color .15s,box-shadow .15s}
+      .cp-btn:hover{border-color:var(--mint);box-shadow:0 6px 18px rgba(20,170,130,.12)}
+      .cp-dot{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(43,207,166,.16);flex:none}
+      .cp-car{color:var(--muted);font-size:11px;margin-left:2px;transition:transform .2s}
+      .chainpick.open .cp-car{transform:rotate(180deg)}
+      .cp-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-6px);min-width:212px;
+        background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px rgba(23,59,54,.15);
+        padding:6px;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:20;text-align:left}
+      .chainpick.open .cp-menu{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+      .cp-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;transition:background .12s}
+      .cp-item:hover{background:#F2FAF7}
+      .cp-item .cp-check{margin-left:auto;color:var(--mint-deep);font-weight:800}
+      .cp-item.soon{color:var(--muted);font-weight:500;font-size:11.5px;cursor:default;padding-top:7px;border-top:1px solid var(--line);margin-top:4px;border-radius:0}
+      .cp-item.soon:hover{background:transparent}
+      .sv-pill{display:flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:7px 7px 7px 18px;
+        border:1px solid var(--line);box-shadow:0 12px 38px rgba(23,59,54,.10);transition:box-shadow .2s,border-color .2s}
+      .sv-pill:focus-within{border-color:var(--mint);box-shadow:0 14px 44px rgba(20,170,130,.16)}
+      .sv-pill input{border:0;outline:none;background:transparent;font-family:var(--mono);font-size:14px;width:350px;max-width:56vw;color:var(--ink)}
+      .sv-pill button{border:0;background:var(--mint-deep);color:#fff;border-radius:999px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:background .15s,transform .12s}
+      .sv-pill button:hover{background:var(--mint-ink)} .sv-pill button:active{transform:scale(.96)}
+      .sv-hint{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.6px}
+      @media(max-width:600px){.sv-logo{font-size:46px}}
+
+      /* ---- the logo IS a ticker: each letter is a rolling column ---- */
+      .sv-logo{line-height:1;cursor:default;user-select:none}
+      .sv-logo .lcol{display:inline-block;height:1em;overflow:hidden;vertical-align:top}
+      .sv-logo .lstack{display:flex;flex-direction:column;transition:transform 1.35s cubic-bezier(.2,.75,.2,1)}
+      .sv-logo .lstack span{height:1em;display:block;line-height:1;text-align:center}
+
+      /* ---- old-screen treatment (the gif's texture): scanlines + grain ---- */
+      #landing{position:relative;overflow:hidden}
+      .land-inner{position:relative;z-index:2}
+      #landing::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+        background:radial-gradient(120% 95% at 50% 42%,transparent 58%,rgba(8,64,50,.24) 100%),
+                   repeating-linear-gradient(0deg,rgba(6,60,47,.05) 0 1px,transparent 1px 3px)}
+      #landing::after{content:"";position:absolute;inset:-30px;z-index:1;pointer-events:none;opacity:.08;mix-blend-mode:overlay;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation:grain 1.2s steps(2) infinite}
+      @keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-1.6%,1%)}50%{transform:translate(1%,-1.6%)}75%{transform:translate(-1%,1.6%)}100%{transform:translate(1.6%,-1%)}}
+      #landing .odo{text-shadow:0 0 22px rgba(255,255,255,.30)}
+      .hero::after{content:"";position:absolute;inset:-20px;z-index:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+      /* the landing's old-screen texture, carried onto the white app pages:
+         same scanlines + living grain, tuned down for ink-on-paper */
+      body:not(.landing-on)::before{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;
+        background:repeating-linear-gradient(0deg,rgba(23,59,54,.038) 0 1px,transparent 1px 3px)}
+      body:not(.landing-on)::after{content:"";position:fixed;inset:-30px;z-index:60;pointer-events:none;opacity:.045;mix-blend-mode:multiply;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation:grain 1.2s steps(2) infinite}
+    </style>
+  </head>
+  <body class="landing-on">
+    <!-- LANDING — rolling live meme prices, Robinhood style -->
+    <section id="landing" class="dots">
+      <div class="land-inner">
+        <div class="land-welcome">Ticker</div>
+        <div class="land-sub">Live prices &amp; P&amp;L for any Robinhood Chain wallet</div>
+        <div class="land-stage">
+          <img class="land-logo" id="landLogo" style="opacity:0" alt="" title="Click to copy the contract address"/>
+          <div class="land-sym" id="landSym">&nbsp;</div>
+          <div class="odo" id="odo"></div>
+          <div class="land-chg" id="landChg"></div>
+        </div>
+        <button class="land-start" id="landStart">Start</button>
+        <div class="land-note">top memes · live from Robinhood Chain pools</div>
+      </div>
+    </section>
+    <div class="app">
+      <!-- SEARCH — centered pre-wallet state: logo, chain, address. Nothing else. -->
+      <div id="searchview">
+        <div class="sv-logo" id="svLogo">Ticker</div>
+        <div class="chainpick" id="chainPick">
+          <button class="cp-btn" id="cpBtn" type="button"><span class="cp-dot"></span>Robinhood Chain<span class="cp-car">▾</span></button>
+          <div class="cp-menu">
+            <div class="cp-item" data-chain="robinhood"><span class="cp-dot"></span>Robinhood Chain<span class="cp-check">✓</span></div>
+            <div class="cp-item soon">more chains soon</div>
+          </div>
+        </div>
+        <div class="sv-pill">
+          <input id="addrBig" spellcheck="false" autocomplete="off" placeholder="0x… wallet address" />
+          <button id="track2">Track</button>
+        </div>
+        <div class="sv-hint">balances · live prices · P&amp;L</div>
+      </div>
+      <header class="hero dots">
+        <div class="hero-top">
+          <div class="wordmark">Ticker</div>
+          <span class="chip">Robinhood Chain</span>
+          <div class="grow"></div>
+          <div class="wallet-pill">
+            <input id="addr" spellcheck="false" placeholder="0x… wallet address" />
+            <button id="track">Track</button>
+          </div>
+        </div>
+        <div class="hero-value odo" id="pfval">—</div>
+        <div><span class="hero-pnl" id="pfpnl" style="display:none"></span></div>
+        <div class="hero-sub" id="pfsub">Paste any wallet address to begin</div>
+        <div class="status" id="status">Enter a Robinhood Chain wallet address, or click “Demo wallet”.</div>
+        <div id="rpcline" style="margin-top:6px;font-size:11.5px;color:rgba(255,255,255,.72)"></div>
+      </header>
+
+      <!-- LIST -->
+      <div id="listview">
+        <div class="tabs" id="tabs"></div>
+        <div class="listtools">
+          <label class="dust"><input type="checkbox" id="dustchk" checked/> <span>Hide tokens under $0.20 &amp; unpriced (spam/dust)</span></label>
+          <span class="grow"></span>
+          <span class="muted" id="hiddenCount"></span>
+          <button class="exportbtn" id="exportBtn" title="Download every reconstructed buy / sell / reward as a CSV (for taxes, spreadsheets, records)">⬇ Export CSV</button>
+        </div>
+        <div class="tablecard">
+          <table>
+            <thead><tr>
+              <th>Asset</th><th>Price</th><th class="col-hide">24h vol</th>
+              <th class="col-hide">Market cap</th><th>Balance</th><th>Value</th><th>P&L / entry</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div class="empty" id="empty" style="display:none"></div>
+        </div>
+        <div class="foot" id="foot">
+          Balances &amp; history from Robinhood Chain (id 4663) via the Blockscout explorer. Prices are read straight
+          from each token’s own WETH / USDG / USDe liquidity pool on-chain (one batched RPC call for known pools;
+          “≈” marks a balance-based estimate); the DEX index only fills in volume / market cap / 24h-change stats
+          in the background. Tokens with
+          no pool are unpriceable spam and show “—”; a price whose pool couldn’t actually pay the position out is
+          flagged ⚠ fake and excluded from your total. Not affiliated with Robinhood. Not investment advice.
+        </div>
+      </div>
+
+      <!-- DETAIL -->
+      <div class="detail" id="detailview"></div>
+    </div>
+
+    <script>
+      const API = "https://robinhoodchain.blockscout.com/api/v2";
+      const EXPLORER = "https://robinhoodchain.blockscout.com";
+      const DEMO = "0x9f736F87E6293AC1Bd9142E257dbfAC8b7AcF1ae";
+      const STABLES = new Set(["USDE","USDG","USDC","USDT","DAI","GHO","USD"]);
+
+      // --- on-chain pricing constants (verified against the live chain) ---
+      const DEFAULT_RPC = "https://rpc.mainnet.chain.robinhood.com";
+      let RPC = DEFAULT_RPC; // your own node or a provider endpoint (QuickNode/GetBlock/…) plugs in via the RPC line under the search box
+      try{ const s = JSON.parse(localStorage.getItem("ticker.rpc")||"null"); if(s && s.url) RPC = s.url; }catch{}
+      const WETH_ADDR = "0x0bd7d308f8e1639fab988df18a8011f41eacad73"; // canonical WETH on Robinhood Chain
+      const USDG_ADDR = "0x5fc5360d0400a0fd4f2af552add042d716f1d168"; // Global Dollar ($1)
+      const USDE_ADDR = "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"; // USDe ($1)
+      let ethUsd = null; // native ETH price, set on wallet load
+      let nativeFailed = false; // true when neither RPC nor explorer could read the ETH balance
+      let bsDown = false;       // explorer refused (403/ban) — running on chain RPC + caches
+      const QUOTE_USD = (a) => a===WETH_ADDR ? ethUsd : (a===USDG_ADDR || a===USDE_ADDR) ? 1 : null;
+      const QUOTE_SYM = (a) => a===WETH_ADDR ? "WETH" : a===USDG_ADDR ? "USDG" : a===USDE_ADDR ? "USDe" : "?";
+
+      // ---------- helpers ----------
+      const $ = (id) => document.getElementById(id);
+      const lc = (s) => (s||"").toLowerCase();
+      const dec = (t) => parseInt(t?.decimals ?? "18") || 18;
+      const toAmt = (val, decimals) => { try { return Number(BigInt(val)) / 10**decimals; } catch { return parseFloat(val)/10**decimals || 0; } };
+      const fmtUsd = (n) => n==null?"—":n===0?"$0":n>=1e12?"$"+(n/1e12).toFixed(2)+"T":n>=1e9?"$"+(n/1e9).toFixed(2)+"B":n>=1e6?"$"+(n/1e6).toFixed(2)+"M":n>=1e3?"$"+(n/1e3).toFixed(1)+"K":n>=1?"$"+n.toLocaleString(undefined,{maximumFractionDigits:2}):"$"+n.toPrecision(3);
+      const fmtPrice = (n) => {
+        if(n==null) return "—";
+        if(n>=1000) return "$"+n.toLocaleString(undefined,{maximumFractionDigits:2});
+        if(n>=1) return "$"+n.toFixed(2);
+        if(n>=0.01) return "$"+n.toFixed(4);
+        if(n<=0) return "$0";
+        // tiny memecoin prices: 3 significant digits, never "0.0000"
+        let s = Number(n.toPrecision(3)).toString();
+        if(s.includes("e")) s = n.toFixed(12).replace(/0+$/,"").replace(/\.$/,"");
+        return "$"+s;
+      };
+      const fmtAmt = (n) => n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:2}):n.toLocaleString(undefined,{maximumFractionDigits:4});
+      const fmtPct = (n) => (n>0?"+":"")+n.toFixed(2)+"%";
+      const arrow = (n) => (n>=0 ? "▲" : "▼");
+      const short = (a) => a.slice(0,6)+"…"+a.slice(-4);
+      const dstr = (ms) => new Date(ms).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
+      // Resilient fetch. Tries, in order: our own serverless proxy (when deployed),
+      // then the API directly, then public CORS proxies (so a local file still works).
+      // Remembers which route worked per host, so later calls skip dead routes.
+      const routeWins = new Map();
+      const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+      // Blockscout discipline: at most 4 requests in flight and a shared cooldown
+      // after any 401/429. Hammering it (and cascading every failure through two
+      // proxies) is what made history fetches flaky all along.
+      let bsActive=0, bsCooldownUntil=0, bs403Seen=false;
+      // does a server-side proxy exist here? Probed once — on pure static hosts
+      // (GitHub Pages etc.) there is none, and requesting a 404 per fetch is waste
+      let hasBackend=false;
+      (async()=>{
+        if(!location.protocol.startsWith("http")) return;
+        try{
+          const r = await fetch("/api/proxy?url="+encodeURIComponent("https://api.dexscreener.com/latest/dex/search?q=WETH"),{signal:AbortSignal.timeout(5000)});
+          hasBackend = r.ok;
+        }catch{}
+      })();
+      async function bsGate(){ while(bsActive>=4 || Date.now()<bsCooldownUntil) await sleep(120); bsActive++; }
+      function bsRelease(){ bsActive=Math.max(0,bsActive-1); }
+      async function fetchJson(url){
+        const enc = encodeURIComponent(url);
+        let host = ""; try{ host = new URL(url).hostname; }catch{}
+        const isBS = host==="robinhoodchain.blockscout.com";
+        if(isBS) await bsGate();
+        try{
+          const routes = [];
+          if (hasBackend) routes.push("/api/proxy?url="+enc); // deployed backend (auto-detected)
+          routes.push(url);                                                              // direct
+          routes.push("https://api.allorigins.win/raw?url="+enc);                        // public fallback
+          routes.push("https://corsproxy.io/?url="+enc);                                 // public fallback 2
+          let order = routes.map((_,i)=>i);
+          const win = routeWins.get(host);
+          if (win!=null && win<routes.length) order = [win, ...order.filter(i=>i!==win)];
+          let err;
+          for (const i of order){
+            if(bs403Seen && isBS && routes[i].indexOf("corsproxy")>=0) continue; // banned: don't crawl every proxy
+            const attempts = (isBS && routes[i]===url && !bs403Seen) ? 3 : 1;
+            for(let a=0; a<attempts; a++){
+              try{
+                const r = await fetch(routes[i], {headers:{accept:"application/json"}, signal: AbortSignal.timeout(isBS && bs403Seen ? 2500 : 3500)});
+                if (r.ok){ const t = await r.text(); const j = JSON.parse(t); routeWins.set(host, i); if(isBS) bs403Seen=false; return j; }
+                err = new Error(String(r.status));
+                if(isBS && r.status===403){ bs403Seen=true; bsCooldownUntil=Date.now()+2000; break; } // banned → fast-fail mode
+                if(isBS && (r.status===429 || r.status===401)){ bsCooldownUntil = Date.now()+900; if(a<attempts-1) await sleep(900*(a+1)); continue; }
+                break; // non-throttle error → next route
+              }catch(e){ err = e; break; }
+            }
+          }
+          throw err || new Error("fetch failed");
+        } finally { if(isBS) bsRelease(); }
+      }
+      async function api(path){ return fetchJson(API+path); }
+      // --- categorisation ----------------------------------------------------
+      // Names and symbols are spoofable, so the rules are, in order:
+      //  1. Your manual override (set on the token's detail page, saved locally).
+      //  2. Address allowlist → RWA (USDG, USDe — extend as real RWAs launch).
+      //  3. "• Robinhood Token" name → Stock, but only PROVISIONALLY: a background
+      //     check compares the contract's deployer with the official issuer
+      //     (learned from the known-real TSLA token, deployer 0x4783…C046, a
+      //     verified BeaconProxy). Lookalikes get demoted to Meme + ⚠ impostor.
+      //  4. Everything else → Meme (correct default on a launchpad chain).
+      const OFFICIAL_ANCHOR = "0x322f0929c4625ed5bad873c95208d54e1c003b2d"; // Tesla • Robinhood Token
+      // Cash & equivalents: ETH (native + wrapped) and the chain's stablecoins
+      const CASH_ADDRS = new Set([USDG_ADDR, USDE_ADDR, WETH_ADDR]);
+      // Reward / reflection / tax tokens — the "RWA rewards" plays. Seeded with
+      // known ones; more are auto-detected from their verified contract names
+      // (e.g. "ReflectionToken", "FlapTaxTokenV3") by detectRewards() below.
+      // Compiled by scanning Robinhood Chain's verified-contract registry
+      // (July 17, 2026) for reward-token classes: ReflectionToken /
+      // RobinhoodReflectionToken / TaxToken / PerpTaxToken / RevShareTax /
+      // BodegaTaxToken / StoxesFunTaxToken / DividendToken and variants.
+      // Trackers, hooks, factories and processors (infrastructure, not tokens)
+      // were excluded.
+      const REWARD_ADDRS = new Set([
+        // user-seeded
+        "0x56910d4409f3a0c78c64dd8d0545ff0705389870", // The Index — ReflectionToken
+        "0x636358c682843ca3976b32cb4dd5fb13fb407777", // Escape The Fed (ETF) — FlapTaxTokenV3
+        // Reflection family
+        "0xdd00b37c64484d9a2c0a6847e132784ae97f9afc","0xe88f76a87c3ad4072bd72fd728f3b378fdde871e",
+        "0x33d766e21b388d11b6ee5bb64ca1bb9d2d8c2f2d","0xe673f71149f28d1a5db4ae164674010dc8f15f07",
+        "0xfffea7068ffaf5f8581407407aaeffa345c3fb3c","0x7e327706f4b82d92fff3c041f5745394e642d090",
+        "0xb6e32ace4bb3b17e05ec2820991f2855c69147f7","0x4adb8f87bbd0b121a9fbed1f88ef4d48bdfe9efc",
+        "0x1347eed54d917b58b3532397f0fa31f1b2e89402","0x3fc8b9ee43a361bbbc7ae160e84fd645b6314766",
+        "0xa88966dde79693a1d383abe32748b8bcec8b1480","0x70c8dba47eb697a3db4a0a462f64cccff2ae8370",
+        "0xb637ee93b53ddbee5fadf84ec2cb5c388ee80f1b","0x71fbf6b1427202010d13b7ee2973276c0a400362",
+        // Tax family
+        "0xf2ffbf2bde064f31647633d885deeb9bba375e81","0x3270a570c57aea70c95b5a2fbd182383ab385bd5",
+        "0x3f5ddaad6c60180bec414b4e17f7f389364418e6","0x30b01c8cb9c46e7f2f2491c28f2857ecbd58bf7c",
+        "0x9edf6503904c18ce5a821e9154c2530253c3eb98","0x591e027153ed4e536275984e1b7573367e11dac4",
+        "0x02aeb8ed43875de021a14af29e6e50dcc5c8dfcf","0x6ed78d736dbce90935a3fb51d96bb8d9998ad377",
+        "0x58dc2df4283ed83cb93c998cff1295943247ed62","0x5d79e6a90369d034933dfc481a0ebf6bcdb7eaa1",
+        "0x08d4e0a93bb3d55ac31f692a185bfa24dcb541c5","0x21cd8e65ebd8d6e68c8819328ce6f4f44bc1afa3",
+        "0x4d970b496ef8f3013e76272283a7fd9a0220919e","0xadf488af1cd7a61e24130a5cd5bc62ff87c2f407",
+        "0x70f573b7cb63f99a4b70a50503764e748a25a0af","0x80ebc98011961342708cd944f234e62d1024b1bc",
+        "0x9e91129e90b31b68dccabcba2ac6cdb8b29dcf86","0x7138e4d79b277f697c6564221b379d9a0d79ed32",
+        "0x4f1503932d72b4720e493cfe9c51ce19c63a1b47","0x62d89c9c9d25d6f5d426b4292043e35f7c99d349",
+        "0x75238d7da5f6ec2c99f0e195e82d189e317e12da","0x92db90540b4fe5c69f15b79e4889dd13b9bb8b9c",
+        "0x497c306478a243a27d706aa8f205bc2531b0fdfb","0xcac6e684296c5551947a63b2c15d80b86dc0778b",
+        "0x332a3fead28691c77078cddfcfc97e46f14abecb","0x1fd3bd970d20a711720165cd745ef1533f98620b",
+        "0xb3178a9e5d7a65e4d8db28f84aa1f29b59134a65","0xa4689a51489297a93d7f7fb0c4eb7f5461aeed37",
+        "0x4481d9eb726235adf4f37ac52677ad1b7bb445c4","0x55bd44137dfc5ae046084b644f9ecb4c627a4082",
+        "0xacf5d669dfe0325668ef9f6a9f785e94e0f3881c","0xa006c1a1598040f2da84565e5d64864b5c7e68c4",
+        "0x3eed0fac902dcba106e704a52b49009c24d620cc","0xf54359c673a63c1b8914eed4d9bae854420127dd",
+        // Dividend family
+        "0x207df3d5be6908d940d4f35584274751b72a4689","0x52675fcf8a91f54c74a4818f67781cfa4a21930f",
+        "0xa079015c1d222eeab8ea4e5e04d703a878f75763","0x548d5531a564a2339dd9ea391676cde1421ae526",
+        "0x72e9e3e25c7cc74f607b5925fa2b5cc06e8e2450","0x3f19e7648c5ea8803dde4f1586b11b5d0acb8966",
+        "0x65e720e65d56a95991171cef8cf15c7597fbdecc","0xab3ab79cacce632b397954732af7ad6beb25636e",
+        "0xcd5676fd664909efbfe5dc3879530396c350ea82","0x516dc347eb3727d589a5d1c28093eff84b02ae7a",
+        "0x03db14858812e4e19c510199f78f0d7c82c8cd9f","0x1c824e747f3aa12885e20bc4b29ce3a69f63e847",
+        "0xa49a122d220ee6ba3035eee4ed08b27a1111d592","0xde74f3b0a0614542381f549278535bfe469c94cd",
+        "0x786dbd92cde05d198cb96d4b59b0cc2a56011be0","0xb3222ee98d65ad10766ecc5d982a9802201c71fb",
+        "0xa7c2f93bbaa1d044114d083eb40d7ebc3f1c1616","0xeaa2e8455249ad9d06c66120a5fc70e8050fb5b9",
+        "0xf58c538da377d65e032c0bc8ac962d333275b528","0xd87580460322836a830ce3c88a151322950aabb2",
+      ]);
+      const REWARD_NAME = /reflect|reward|dividend|tax/i;
+      // RWA means it rewards STOCKS. A token that rewards another MEME is just
+      // a meme with extra steps — these are user-confirmed meme-rewarders that
+      // the reward-name detector must never promote to RWA:
+      const MEME_PINS = new Set([
+        "0x0eda40e6ea2aec43e523aef5d6253145a9cefe3d", // MINICAT — rewards CASHCAT (a meme)
+        "0x020bfc650a365f8bb26819deaabf3e21291018b4", // CASHCAT — meme, not a stock-rewarder
+      ]);
+      const OFFICIAL_PATTERN = /robinhood token/i;
+      function classify(t){
+        const a = lc(t.address_hash||"");
+        const ov = store.get("ticker.cat."+a);
+        if(ov && ov.cat) return ov.cat;
+        if(MEME_PINS.has(a)) return "meme"; // confirmed meme-rewarders — never RWA
+        if(CASH_ADDRS.has(a)) return "cash";
+        if(REWARD_ADDRS.has(a)) return "rwa";
+        if(OFFICIAL_PATTERN.test(t.name||"")) return "stocks";
+        return "meme";
+      }
+      // one cached lookup per token: contract creator + verified contract-class name
+      async function contractInfo(tokenAddr){
+        const key = "ticker.cinfo."+lc(tokenAddr);
+        const s = store.get(key);
+        if(s) return s;
+        try{
+          const ai = await api(`/addresses/${tokenAddr}`);
+          const info = { creator: ai && ai.creator_address_hash ? lc(ai.creator_address_hash) : null,
+                         cname: (ai && ai.name) || "" };
+          store.set(key, info);
+          return info;
+        }catch{ return {creator:null, cname:""}; }
+      }
+      async function verifyIssuers(){
+        const claimed = holdings.filter(h=>h.cat==="stocks" && !store.get("ticker.cat."+lc(h.addr)));
+        if(!claimed.length) return;
+        const official = (await contractInfo(OFFICIAL_ANCHOR)).creator;
+        if(!official) return; // couldn't verify this load — leave provisional
+        let changed=false;
+        for(const h of claimed){
+          if(lc(h.addr)===OFFICIAL_ANCHOR) continue;
+          const c = (await contractInfo(h.addr)).creator;
+          if(c && c!==official){ h.cat="meme"; h.impostor=true; changed=true; }
+        }
+        if(changed){ sortHoldings(); if($("detailview").style.display!=="block") renderHoldings(); }
+      }
+      // reward/reflection/tax tokens auto-file under RWA by verified contract name
+      async function detectRewards(){
+        const cand = holdings.filter(h=>h.addr!=="native" && h.cat==="meme" && !h.suspect && h.price!=null && !MEME_PINS.has(lc(h.addr)) && !store.get("ticker.cat."+lc(h.addr)));
+        let changed=false;
+        for(const h of cand){
+          const info = await contractInfo(h.addr);
+          if(info.cname && REWARD_NAME.test(info.cname)){ h.cat="rwa"; h.rewards=true; changed=true; }
+        }
+        if(changed){ sortHoldings(); if($("detailview").style.display!=="block") renderHoldings(); }
+      }
+      const CAT = { stocks:{label:"Stock",color:"#3B82F6"}, rwa:{label:"RWA",color:"#0EAF7E"}, meme:{label:"Meme",color:"#EC4899"}, cash:{label:"Cash",color:"#64748B"}, native:{label:"Native",color:"#64748B"} };
+      const ic = (sym,color)=>`<div class="ic" style="background:${color}">${(sym||"?").replace(/^[$]/,"").slice(0,3).toUpperCase()}</div>`;
+      // real coin logos: the pair's submitted profile image when the DEX index
+      // has one, else DexScreener's per-token icon CDN; if neither exists the
+      // colored initials tile quietly takes over (onerror)
+      const ddLogo = (a)=>"https://dd.dexscreener.com/ds-data/tokens/robinhood/"+lc(a)+".png?size=lg";
+      // ETH's diamond, inlined — native coins aren't in any token-icon CDN
+      const ETH_LOGO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%23627EEA'/%3E%3Cg fill='%23fff'%3E%3Cpath d='M16.5 4v8.87l7.5 3.35z' opacity='.6'/%3E%3Cpath d='M16.5 4L9 16.22l7.5-3.35z'/%3E%3Cpath d='M16.5 21.97V28l7.5-10.38z' opacity='.6'/%3E%3Cpath d='M16.5 28v-6.03L9 17.62z'/%3E%3Cpath d='M16.5 20.57l7.5-4.35-7.5-3.34z' opacity='.2'/%3E%3Cpath d='M9 16.22l7.5 4.35v-7.69z' opacity='.6'/%3E%3C/g%3E%3C/svg%3E";
+      const icoHtml = (h)=>{
+        const img = h.addr==="native" ? ETH_LOGO
+          : ((h.dex && h.dex.img) || (lc(h.addr)===WETH_ADDR ? ETH_LOGO : ddLogo(h.addr)));
+        const fb = ic(h.symbol, catColor(h.cat||"meme")).replace('class="ic"','class="ic" style="display:none"');
+        const cop = h.addr!=="native" ? ` data-caddr="${h.addr}" title="Click to copy the contract address"` : "";
+        return `<span class="icw"${cop}><img class="ic-img" loading="lazy" src="${img}" onerror="this.style.display='none';var n=this.nextElementSibling;if(n)n.style.display='grid'"/>${fb}</span>`;
+      };
+      // one copy function for the whole app — click any coin logo to copy its contract
+      let toastTimer=null;
+      function toast(msg){
+        let el=$("toast");
+        if(!el){ el=document.createElement("div"); el.id="toast"; document.body.appendChild(el); }
+        el.textContent=msg; el.classList.add("on");
+        if(toastTimer) clearTimeout(toastTimer);
+        toastTimer=setTimeout(()=>el.classList.remove("on"), 1600);
+      }
+      function copyText(t){
+        if(!t) return;
+        const done=()=>toast("Copied · "+short(t));
+        const fallback=()=>{ try{
+          const ta=document.createElement("textarea"); ta.value=t; ta.style.cssText="position:fixed;opacity:0";
+          document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); done();
+        }catch{} };
+        try{ navigator.clipboard.writeText(t).then(done, fallback); }catch{ fallback(); }
+      }
+      // clicking any coin logo, anywhere, copies its contract address
+      document.addEventListener("click",(e)=>{
+        const w = e.target && e.target.closest ? e.target.closest(".icw[data-caddr]") : null;
+        if(w){ e.stopPropagation(); e.preventDefault(); copyText(w.dataset.caddr); }
+      }, true);
+      const catColor = (c)=>CAT[c].color;
+
+      // ---------- state ----------
+      let addr = "", holdings = [], transfers = null, tab = "all", period = "all", hideDust = true;
+      let bsAppliedFor = null; // wallet whose portfolio came from the explorer — the RPC floor must never overwrite it
+      let loadAutoTries = 0;   // automatic reload attempts after a total refusal (rate limits lift on their own)
+      // "dust" = no tradable price (no pool → spam/airdrop) or a position worth under $0.20
+      // never dust-hide ETH, user-categorised tokens, or known reward tokens
+      const isDust = (h) => h.addr!=="native"
+        && !REWARD_ADDRS.has(lc(h.addr))
+        && !store.get("ticker.cat."+lc(h.addr))
+        && (h.price==null || h.suspect || (h.value!=null && h.value<0.20));
+
+      // ---------- load ----------
+      const sortHoldings = () => holdings.sort((x,y)=>(y.addr==="native"?1:0)-(x.addr==="native"?1:0) || (y.value||0)-(x.value||0));
+
+      async function loadWallet(a, isAuto){
+        a = a.trim();
+        if(!/^0x[0-9a-fA-F]{40}$/.test(a)){ setStatus("That doesn't look like a valid 0x address.", "bad"); return; }
+        if(!isAuto) loadAutoTries = 0;
+        addr = a; holdings = []; transfers = null; statusInfo = null; bsDown = false; bs403Seen = false; bsAppliedFor = null;
+        landingDone(); // tracking begins — the landing page steps aside
+        document.body.classList.remove("pre"); // …and so does the centered search page
+        showList();
+        setStatus(`<span class="spin"></span> Loading ${short(a)}…`);
+        const pv=$("pfval"); if(pv){ pv._odoPrev=""; pv.textContent="—"; }
+        $("pfpnl").style.display="none"; $("rows").innerHTML=""; $("empty").style.display="none";
+
+        // 1) native ETH — kicked off immediately, resolved just before pricing.
+        //    Balance comes from the chain RPC first (the explorer's /addresses
+        //    endpoint rate-limits and used to silently drop the ETH row).
+        nativeFailed = false;
+        const nativeP = loadNative(a);
+
+        // 2) fungible token balances. The explorer's answer is the richest
+        //    (metadata + prices in one call) but it 401/403-blocks under load,
+        //    so it gets a HARD 10-second budget — after that the chain-RPC
+        //    floor paints the portfolio, and if the explorer answers later it
+        //    upgrades the view in place. Balances always load while the RPC is up.
+        const bsP = api(`/addresses/${a}/token-balances`);
+        const SLOW = {};
+        const first = await Promise.race([bsP.catch(e=>({__err:String((e&&e.message)||e)})), sleep(10000).then(()=>SLOW)]);
+        if(first===SLOW || (first && first.__err!==undefined)){
+          const why = first===SLOW ? "explorer not answering (10s)" : ("explorer "+first.__err);
+          // a late explorer success still upgrades the RPC view when it arrives
+          bsP.then(r=>{ applyExplorerBalances(a, r, nativeP, true); }).catch(()=>{});
+          let fb=false; try{ fb = await rpcPortfolioFallback(a, why); }catch{}
+          if(fb==="rpcdown"){
+            // rate limits lift on their own — retry without being asked
+            if(loadAutoTries<3){
+              loadAutoTries++;
+              setStatus(`Both the explorer (${why}) and the chain RPC are refusing right now — that's a rate limit and it lifts on its own. Retrying quietly in 60s (${loadAutoTries}/3) — knocking too often keeps the door shut. <u style="cursor:pointer" onclick="loadWallet(addr)">retry now</u>`,"bad");
+              setTimeout(()=>{ if(lc(addr)===lc(a) && !holdings.length) loadWallet(a, true); }, 60000);
+            }
+            return;
+          }
+          if(fb) return;
+          setStatus(`Couldn't load balances — ${why}. If you're viewing this in the chat's side panel, download the file and open it in a Chrome tab — the panel blocks live data. <u style="cursor:pointer" onclick="loadWallet(addr)">retry</u>`,"bad");
+          return;
+        }
+        applyExplorerBalances(a, first, nativeP, false);
+      }
+      // Build/replace the portfolio from an explorer token-balances answer.
+      // late=true → the RPC floor already painted; upgrade it in place without
+      // losing anything the floor worked out (prices, P&L, the ETH row).
+      function applyExplorerBalances(a, raw, nativeP, late){
+        if(lc(addr)!==lc(a)) return; // user moved on to another wallet
+        const arr = Array.isArray(raw) ? raw : (raw && raw.items ? raw.items : []);
+        const fung = arr.filter(b=>{
+          const ty = ((b.token&&b.token.type)||"").toUpperCase();
+          return b.token && b.value && b.value!=="0" && !ty.includes("721") && !ty.includes("1155");
+        });
+        if(late && !fung.length) return; // never wipe a painted portfolio with an empty late answer
+        bsAppliedFor = lc(a); // from here on the explorer version is canonical
+        bsDown = false; // the explorer is answering (again) — history features on
+
+        // 3) build holdings straight from balances — fast, nothing hidden
+        const prev = new Map(holdings.map(x=>[lc(x.addr), x]));
+        holdings = fung.map(b=>{
+          const t=b.token, d=dec(t);
+          const price = t.exchange_rate!=null ? parseFloat(t.exchange_rate) : null;
+          const amount = toAmt(b.value, d);
+          const h = { addr:t.address_hash, symbol:t.symbol||"?", name:t.name||t.symbol||"Token", decimals:d, amount,
+                   price, value: price!=null?amount*price:null,
+                   mc: t.circulating_market_cap!=null?parseFloat(t.circulating_market_cap):null,
+                   vol: t.volume_24h!=null?parseFloat(t.volume_24h):null,
+                   holders: t.holders_count?parseInt(t.holders_count):null,
+                   supply: t.total_supply?toAmt(t.total_supply,d):null,
+                   cat: classify(t), rewards: REWARD_ADDRS.has(lc(t.address_hash||"")), _enriched:false };
+          const p = prev.get(lc(h.addr));
+          if(p){ // keep whatever the RPC floor already worked out
+            if(h.price==null && p.price!=null){ h.price=p.price; h.value=h.amount*p.price; h.approx=p.approx; }
+            if(p.dex) h.dex=p.dex;
+            if(p.avgCost!==undefined){ h.avgCost=p.avgCost; h.costQty=p.costQty; h.costPartial=p.costPartial; h.costUnresolved=p.costUnresolved; h.costNote=p.costNote; }
+          }
+          return h;
+        });
+        const nat = prev.get("native"); if(nat) holdings.push(nat);
+        // remember this wallet's token list (with metadata) — it powers the
+        // RPC-only fallback when the explorer blocks us
+        store.set("ticker.toklist."+lc(a), {ts:Date.now(), toks: holdings.filter(x=>x.addr!=="native").map(x=>({a:lc(x.addr), s:x.symbol, n:x.name, d:x.decimals}))});
+        sortHoldings();
+        if($("detailview").style.display!=="block") renderHoldings();
+        setStatus(late ? `<span class="ok">✓</span> explorer answered — full market data restored · pricing…`
+                       : `<span class="ok">✓ Loaded</span> ${holdings.length} assets for ${short(a)} · filling in prices…`);
+        // ETH joins the list the moment its RPC read lands — rendering never waits on it
+        nativeP.then(native=>{ if(native && lc(addr)===lc(a) && !holdings.some(x=>x.addr==="native")){ holdings.push(native); sortHoldings(); if($("detailview").style.display!=="block") renderHoldings(); } }).catch(()=>{});
+        (async()=>{
+          await ensureEthUsd(); // WETH-quoted pool pricing needs it — fast, explorer-independent
+          // 4) progressively fetch price/market data for tokens (keeps the list responsive under rate limits)
+          enrichPrices();
+        })();
+        // 5) P&L column first (targeted fetches); the heavy wallet-wide crawl and
+        //    the cosmetic checks are STAGGERED so they don't trample the explorer
+        //    while trade lookups are running.
+        pnlRetries = 0;
+        // (the P&L pass is triggered from enrichPrices once tokens have prices —
+        // running it before pricing made it skip everything as "unpriced dust")
+        setTimeout(()=>{ if(!bsDown && lc(addr)===lc(a)) loadTransfers(a); }, 12000);
+        setTimeout(()=>{ if(!bsDown && lc(addr)===lc(a)) verifyIssuers(); }, 8000);
+      }
+
+      // DexScreener already indexes Robinhood Chain (chainId "robinhood") and returns
+      // USD prices routed through the ETH / WETH / USDG pools — plus volume, liquidity
+      // and 1h/6h/24h price change. We take, per token, the highest-liquidity pool.
+      const DEX_API = "https://api.dexscreener.com/latest/dex/tokens/";
+      const num = (v)=> (v==null||v==="")?null:(isNaN(+v)?null:+v);
+      async function dexPrices(addresses){
+        const map = new Map();
+        const weak = new Set(); // tokens whose ONLY pools are tiny → price not trustworthy
+        let ok = false;
+        for(let i=0;i<addresses.length;i+=30){
+          const batch = addresses.slice(i,i+30).join(",");
+          let data;
+          try{ data = await fetchJson(DEX_API+batch); }
+          catch{ try{ data = await fetchJson(DEX_API+batch); }catch{ continue; } } // retry a failed chunk once
+          ok = true;
+          for(const p of (data.pairs||[])){
+            if(p.chainId!=="robinhood") continue;
+            const base = lc(p.baseToken&&p.baseToken.address); if(!base) continue;
+            const liq = (p.liquidity&&num(p.liquidity.usd))||0;
+            if(liq < 100){ weak.add(base); continue; } // scam pools fake huge prices with ~no liquidity
+            // pick the token's LIVE pair: rank by 24h volume (real activity),
+            // liquidity only as tiebreak. Abandoned or fake-seeded pools can
+            // fake big liquidity, but they can't fake a day of real volume —
+            // choosing by liquidity alone once put a dead pool's −100% / $18B
+            // "market cap" on a healthy token's page.
+            const score = num(p.volume&&p.volume.h24)||0;
+            const cur = map.get(base);
+            if(!cur || score>cur._score || (score===cur._score && liq>cur._liq)){
+              map.set(base, {
+                price: p.priceUsd?parseFloat(p.priceUsd):null,
+                ch:{ h1:num(p.priceChange&&p.priceChange.h1), h6:num(p.priceChange&&p.priceChange.h6), h24:num(p.priceChange&&p.priceChange.h24) },
+                vol:{ h24:num(p.volume&&p.volume.h24), h6:num(p.volume&&p.volume.h6), h1:num(p.volume&&p.volume.h1) },
+                liq, mc: num(p.marketCap)??num(p.fdv), quote:(p.quoteToken&&p.quoteToken.symbol)||"", dex:p.dexId, sym:(p.baseToken&&p.baseToken.symbol)||"", img:(p.info&&p.info.imageUrl)||"",
+                pair: lc(p.pairAddress||""), quoteAddr: lc((p.quoteToken&&p.quoteToken.address)||""),
+                v3: Array.isArray(p.labels) ? p.labels.includes("v3") : true, _liq:liq, _score:score });
+            }
+          }
+        }
+        for(const b of map.keys()) weak.delete(b); // had at least one real pool
+        return {map, ok, weak};
+      }
+
+      // A position can never be worth more than its pool could actually pay out.
+      // Anything claiming otherwise is a scam airdrop with a faked price.
+      function applySanity(){
+        holdings.forEach(h=>{
+          if(h.addr==="native"){ h.suspect=false; return; }
+          const liq = (h.dex && h.dex.liq!=null) ? h.dex.liq : (h.pool ? h.pool.liq : null);
+          h.suspect = !!(h.price!=null && liq!=null && h.value!=null && h.value > Math.max(2*liq, 50));
+          // market cap must square with supply × live price — index "market
+          // caps" on memechains are often FDV computed against a bogus pool
+          if(h.supply>0 && h.price!=null){
+            const cmc = h.supply*h.price;
+            if(h.mc==null || h.mc>cmc*3 || h.mc<cmc/3) h.mc = cmc;
+          }
+        });
+      }
+
+      // ---------- on-chain pool pricing (no third-party index needed) ----------
+      // 1) find a token's pool: it's a top HOLDER of the token that also holds
+      //    WETH / USDG / USDe (verified live: the RHPEPE/WETH v3 pool is holder #1).
+      // 2) exact price: eth_call slot0() (Uniswap v3) or getReserves() (v2) on the
+      //    chain's own RPC, batched into one request.
+      // 3) if RPC is unreachable: approximate from pool balances, marked "≈".
+      const poolCache = new Map();
+      function hexWord(res,i){ if(!res || res==="0x" || res.length<2+64*(i+1)) return null; try{ return BigInt("0x"+res.slice(2+64*i, 2+64*(i+1))); }catch{ return null; } }
+      function hexAddr(res){ const w=hexWord(res,0); return w==null?null:"0x"+w.toString(16).padStart(40,"0"); }
+      // --- RPC discipline v2: ONE WIRE. Rate limiters bill the NUMBER of HTTP
+      // requests, not the work inside them — so every eth_* subcall from
+      // anywhere in the app lands in one shared queue, and every 60ms the
+      // queue ships as a SINGLE batched request (≤100 subcalls). Identical
+      // concurrent subcalls are merged. Parallel everywhere, minimal requests.
+      let rpcActive=0, rpcCooldownUntil=0, rpcLastAt=0;
+      async function rpcGate(){
+        for(;;){
+          const now=Date.now();
+          if(rpcActive<3 && now>=rpcCooldownUntil && now-rpcLastAt>=120) break;
+          await sleep(60);
+        }
+        rpcActive++; rpcLastAt=Date.now();
+      }
+      function rpcRelease(status){
+        rpcActive=Math.max(0,rpcActive-1);
+        if(status===429 || status===403) rpcCooldownUntil=Date.now()+4000;
+      }
+      const rpcQ=[]; let rpcFlushTimer=null;
+      const rpcDupes=new Map(); // identical concurrent subcalls share one answer
+      function rpcEnqueue(method, params){
+        const key = method+"|"+JSON.stringify(params||[]);
+        const dup = rpcDupes.get(key);
+        if(dup) return dup;
+        let resolver;
+        const pr = new Promise(res=>{ resolver=res; });
+        rpcQ.push({method, params, res:(v)=>{ rpcDupes.delete(key); resolver(v); }});
+        rpcDupes.set(key, pr);
+        if(!rpcFlushTimer) rpcFlushTimer=setTimeout(rpcFlush, 60);
+        return pr;
+      }
+      function rpcFlush(){
+        rpcFlushTimer=null;
+        while(rpcQ.length) rpcWire(rpcQ.splice(0, 100)); // gate paces the wire
+      }
+      async function rpcWire(take){
+        const payload = take.map((c,i)=>({jsonrpc:"2.0", id:i, method:c.method, params:c.params}));
+        const body = JSON.stringify(payload);
+        const targets = [RPC];
+        if (hasBackend) targets.push("/api/proxy?url="+encodeURIComponent(RPC));
+        await rpcGate();
+        let lastStatus=0;
+        try{
+          for(let attempt=0; attempt<2; attempt++){
+            for(const t of targets){
+              try{
+                const r = await fetch(t,{method:"POST",headers:{"content-type":"application/json"},body,signal:AbortSignal.timeout(12000)});
+                if(!r.ok){ lastStatus=r.status; continue; }
+                const out = await r.json();
+                const m=new Map(); (Array.isArray(out)?out:[out]).forEach(o=>m.set(o.id, o && o.result!==undefined ? o.result : null));
+                take.forEach((c,i)=>c.res(m.get(i) ?? null));
+                return;
+              }catch{}
+            }
+            if(!(lastStatus===429 || lastStatus===403)) break;
+            await sleep(3500); // refused — cool down once, then one polite retry
+          }
+          take.forEach(c=>c.res(null)); // no answer this round — callers retry later
+        } finally { rpcRelease(lastStatus); }
+      }
+      async function rpcBatch(calls){
+        const r = await Promise.all(calls.map(c=>rpcEnqueue("eth_call",[{to:c.to,data:c.data},"latest"])));
+        if(calls.length && r.every(x=>x==null)) throw new Error("rpc failed"); // total silence = network refusal
+        return r;
+      }
+      async function rpcCall(method, params){
+        const r = await rpcEnqueue(method, params);
+        if(r==null) throw new Error("rpc failed");
+        return r;
+      }
+      // generic JSON-RPC batch (any methods) — the workhorse of the RPC-first design
+      // generic JSON-RPC batch — now just a face on the shared wire above:
+      // concurrent callers merge into the same HTTP request automatically
+      async function rpcMulti(calls){
+        return Promise.all(calls.map(c=>rpcEnqueue(c.method, c.params)));
+      }
+      const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+      const padTopic = (a)=>"0x000000000000000000000000"+lc(a).slice(2);
+      // block → timestamp without any explorer: linear estimate between block 1
+      // and the latest block (a steady L2 makes this accurate to ~minutes)
+      let chainAnchor = null, chainAnchorTriedAt = 0;
+      async function warmChain(){
+        if(chainAnchor && chainAnchor.ln!=null) return;
+        if(Date.now()-chainAnchorTriedAt < 5000) return; // don't hammer; retry on later calls
+        chainAnchorTriedAt = Date.now();
+        try{
+          const r1 = await rpcMulti([{method:"eth_getBlockByNumber",params:["latest",false]}]);
+          const lb = r1 && r1[0];
+          if(!(lb && lb.number && lb.timestamp)) return;
+          const ln = Number(BigInt(lb.number)), lt = Number(BigInt(lb.timestamp))*1000;
+          const an = Math.max(1, ln - 3000000); // second anchor far in the past
+          const r2 = await rpcMulti([{method:"eth_getBlockByNumber",params:["0x"+an.toString(16),false]}]);
+          const gb = r2 && r2[0];
+          if(!(gb && gb.timestamp)) return;
+          const gt = Number(BigInt(gb.timestamp))*1000;
+          if(!(lt>gt)) return;
+          chainAnchor = { ln, lt, gn:an, gt };
+        }catch{}
+      }
+      function blockTimeEstSync(bnHex){
+        try{
+          if(!chainAnchor || chainAnchor.ln==null || !bnHex) return null;
+          const n = Number(BigInt(bnHex));
+          const rate = (chainAnchor.lt - chainAnchor.gt) / Math.max(1, chainAnchor.ln - chainAnchor.gn);
+          return new Date(chainAnchor.gt + (n - chainAnchor.gn)*rate).toISOString();
+        }catch{ return null; }
+      }
+      // Native ETH: balance from the chain's RPC (most reliable), explorer as
+      // backup; price from explorer address → /stats → the WETH token page.
+      // If the balance is readable but no price source answers, ETH still
+      // shows with "—" instead of disappearing.
+      // ETH price WITHOUT depending on the explorer: hourly CoinGecko feed's
+      // latest point is the fallback anchor whenever /stats is unreachable.
+      async function ensureEthUsd(){
+        if(ethUsd!=null) return;
+        if(!bsDown && !bs403Seen){
+          try{ const st = await api(`/stats`); if(st && st.coin_price!=null){ ethUsd = parseFloat(st.coin_price); return; } }catch{}
+        }
+        try{
+          await loadEthHist();
+          if(ethHist && ethHist.length){ const last = ethHist[ethHist.length-1]; if(last && last[1]!=null) ethUsd = last[1]; }
+        }catch{}
+      }
+      async function loadNative(a){
+        let bal = null;
+        for(let i=0; i<2 && bal==null; i++){ // RPC first, with one retry — never the slow path
+          try{ const r = await rpcCall("eth_getBalance",[a,"latest"]); bal = Number(BigInt(r))/1e18; }catch{ await sleep(400); }
+        }
+        if (bal==null && !bsDown && !bs403Seen){
+          try{ const ai = await api(`/addresses/${a}`);
+            if(ai && ai.coin_balance!=null) bal = toAmt(ai.coin_balance, 18);
+            if(ai && ai.exchange_rate!=null && ethUsd==null) ethUsd = parseFloat(ai.exchange_rate);
+          }catch{}
+        }
+        await ensureEthUsd();
+        if (bal==null){ nativeFailed = true; return null; }
+        if (bal<=0) return null;
+        return { addr:"native", symbol:"ETH", name:"Ethereum", decimals:18, amount:bal,
+                 price:ethUsd, value: ethUsd!=null?bal*ethUsd:null, mc:null, vol:null, holders:null, supply:null,
+                 cat:"cash", _enriched:true };
+      }
+      // --- RPC-only portfolio fallback: survives the explorer blocking us -----
+      // Balances via batched balanceOf() for every token this wallet was ever
+      // seen holding (cached token list, or reconstructed from local caches);
+      // symbol/name/decimals read from the contracts themselves when unknown.
+      function decodeStr(res){
+        try{
+          if(!res || res.length<130) return null;
+          const hex=res.slice(2);
+          const len=Number(BigInt("0x"+hex.slice(64,128)));
+          if(!(len>0 && len<64)) return null;
+          const data=hex.slice(128,128+len*2);
+          let s=""; for(let i=0;i<data.length;i+=2) s+=String.fromCharCode(parseInt(data.slice(i,i+2),16));
+          return s.replace(/[^\x20-\x7E]/g,"").trim()||null;
+        }catch{ return null; }
+      }
+      async function rpcPortfolioFallback(a, errMsg){
+        bsDown = true;
+        let cand = (store.get("ticker.toklist."+lc(a))||{}).toks || null;
+        if(!cand || !cand.length){
+          // no saved list — reconstruct candidates from every cache we have
+          const set=new Map();
+          try{
+            for(let i=0;i<localStorage.length;i++){
+              const k=localStorage.key(i)||"";
+              let m;
+              if((m=k.match(/^ticker\.cost\d\.(0x[0-9a-f]{40})\.(0x[0-9a-f]{40})$/)) && m[1]===lc(a)) set.set(m[2],1);
+              else if((m=k.match(/^ticker\.pool\.(0x[0-9a-f]{40})$/))) set.set(m[1],1);
+            }
+          }catch{}
+          REWARD_ADDRS.forEach(x=>set.set(x,1)); CASH_ADDRS.forEach(x=>set.set(x,1));
+          cand = [...set.keys()].map(x=>({a:x}));
+        }
+        // discover tokens straight from the chain: every incoming ERC-20 transfer
+        // log names its token in log.address — works for wallets we've never seen
+        // before, and catches tokens bought after the cached list was saved
+        try{
+          setStatus(`<span class="spin"></span> Explorer blocked (${errMsg}) — discovering this wallet's tokens from chain logs…`);
+          const disc = await rpcMulti([{method:"eth_getLogs",params:[{topics:[TRANSFER_TOPIC, null, padTopic(a)], fromBlock:"0x1", toBlock:"latest"}]}]);
+          const logs = disc && disc[0];
+          if(Array.isArray(logs)){
+            const have = new Set(cand.map(c=>c.a));
+            for(const lg of logs){
+              const ta = lc((lg && lg.address) || "");
+              if(/^0x[0-9a-f]{40}$/.test(ta) && !have.has(ta)){ have.add(ta); cand.push({a:ta}); }
+            }
+          }
+        }catch{}
+        if(!cand.length){ setStatus(`Explorer is blocking requests (${errMsg}), and reading the chain's transfer logs failed too — the RPC may be briefly throttled. <u style="cursor:pointer" onclick="loadWallet(addr)">retry</u>`,"bad"); return true; }
+        setStatus(`<span class="spin"></span> Explorer blocked (${errMsg}) — reading balances straight from the chain (${cand.length} known tokens)…`);
+        const calls = cand.map(c=>({to:c.a, data:"0x70a08231"+w32(a.slice(2))}));
+        const res=[]; let rpcOk=false;
+        for(let i=0;i<calls.length;i+=100){
+          try{ const r=await rpcBatch(calls.slice(i,i+100)); res.push(...r); rpcOk=true; }
+          catch{ res.push(...new Array(Math.min(100,calls.length-i)).fill(null)); }
+        }
+        if(!rpcOk){ setStatus(`Both the explorer (${errMsg}) and the chain RPC are refusing right now — this passes on its own. <u style="cursor:pointer" onclick="loadWallet(addr)">retry</u>`,"bad"); return "rpcdown"; }
+        const held=[];
+        cand.forEach((c,i)=>{ const w=hexWord(res[i],0); if(w!=null && w>0n) held.push({c, raw:w}); });
+        // metadata for tokens we don't already know
+        const need = held.filter(x=>!(x.c.s && x.c.d!=null) && !store.get("ticker.tokmeta."+x.c.a));
+        if(need.length){
+          const mc=[]; need.forEach(x=>{ mc.push({to:x.c.a,data:"0x95d89b41"}); mc.push({to:x.c.a,data:"0x313ce567"}); mc.push({to:x.c.a,data:"0x06fdde03"}); }); // symbol, decimals, name
+          const mr=[];
+          for(let i=0;i<mc.length;i+=100){
+            try{ const r=await rpcBatch(mc.slice(i,i+100)); mr.push(...r); }
+            catch{ mr.push(...new Array(Math.min(100,mc.length-i)).fill(null)); }
+          }
+          need.forEach((x,j)=>{
+            const sym=decodeStr(mr[j*3]), dec=hexWord(mr[j*3+1],0), nm=decodeStr(mr[j*3+2]);
+            store.set("ticker.tokmeta."+x.c.a, {s:sym||"?", d:dec!=null?Number(dec):18, n:nm||sym||"Token"});
+          });
+        }
+        if(bsAppliedFor===lc(a)) return true; // explorer answered while we worked — its richer version stays
+        holdings = held.map(({c,raw})=>{
+          const meta = (c.s && c.d!=null) ? {s:c.s,d:c.d,n:c.n||c.s} : (store.get("ticker.tokmeta."+c.a)||{s:"?",d:18,n:"Token"});
+          const amount = Number(raw)/Math.pow(10,meta.d);
+          return { addr:c.a, symbol:meta.s, name:meta.n, decimals:meta.d, amount,
+                   price:null, value:null, mc:null, vol:null, holders:null, supply:null,
+                   cat:classify({address_hash:c.a, name:meta.n}), rewards:REWARD_ADDRS.has(c.a), _enriched:false };
+        });
+        sortHoldings(); renderHoldings();
+        loadNative(a).then(native=>{ if(native && lc(addr)===lc(a) && !holdings.some(x=>x.addr==="native")){ holdings.push(native); sortHoldings(); if($("detailview").style.display!=="block") renderHoldings(); } }).catch(()=>{});
+        setStatus(`<span class="ok">✓</span> ${holdings.length} assets via chain RPC (explorer blocked — history features paused until it lifts) · pricing…`);
+        await ensureEthUsd();
+        enrichPrices();
+        return true;
+      }
+
+      // Safe storage (works in a plain browser tab; harmless no-op elsewhere)
+      const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+                      set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+                      del(k){ try{ localStorage.removeItem(k); }catch{} } };
+      async function poolFromBalances(h, poolHash){
+        try{
+          const bals = await api(`/addresses/${poolHash}/token-balances`);
+          const arr = Array.isArray(bals)?bals:(bals.items||[]);
+          let tokAmt=null, q=null;
+          for(const b of arr){
+            const a = lc(b.token&&b.token.address_hash); if(!a) continue;
+            if(a===lc(h.addr)) tokAmt = toAmt(b.value, dec(b.token));
+            else { const u=QUOTE_USD(a); if(u!=null){ const amt=toAmt(b.value,dec(b.token)); const qUsd=amt*u; if(!q||qUsd>q.qUsd) q={addr:a,amt,qUsd,dec:dec(b.token)}; } }
+          }
+          if(tokAmt>0 && q && q.qUsd>=25) // ignore dust pools under $25
+            return {pool:poolHash, quoteAddr:q.addr, quoteUsd1:QUOTE_USD(q.addr), qDec:q.dec, tokAmt, qUsd:q.qUsd};
+          return null;
+        }catch{ return null; }
+      }
+      async function findPool(h){
+        const key = "ticker.pool." + lc(h.addr);
+        const saved = store.get(key);
+        if (saved && saved.pool && Date.now()-saved.ts < 864e5){ // 24h pool cache → skip discovery
+          const f = await poolFromBalances(h, saved.pool);
+          if (f) return f;
+        }
+        try{
+          const hold = await api(`/tokens/${h.addr}/holders`);
+          const items = (hold.items||[]).slice(0,10);
+          const cands = items
+            .map(it=>({hash:(it.address&&it.address.hash)||it.address_hash||"", isC: it.address?it.address.is_contract===true:true}))
+            .filter(c=>c.hash && c.isC).slice(0,4);
+          const results = await Promise.all(cands.map(c=>poolFromBalances(h, c.hash)));
+          let best=null; results.forEach(f=>{ if(f && (!best||f.qUsd>best.qUsd)) best=f; });
+          if(best) store.set(key, {pool:best.pool, ts:Date.now()});
+          return best;
+        }catch{ return null; }
+      }
+      // --- factory-based pool discovery: EVERYTHING via a few batched eth_calls ---
+      // Instead of crawling the explorer per token, ask the DEX factory contract
+      // directly which pool exists for (token, WETH/USDG/USDe, fee tier). The
+      // factory address is learned once from a known live pool and cached.
+      const SEED_V3_POOL = "0x47edb90021eb0c1ac8bcf36e6148b5567410a083"; // live RHPEPE/WETH v3 pool
+      const V3_FEES = [100, 500, 3000, 10000];
+      const w32 = (hex40)=>"000000000000000000000000"+hex40.toLowerCase();
+      const feePad = (f)=>f.toString(16).padStart(64,"0");
+      async function getV3Factory(){
+        const saved = store.get("ticker.v3factory");
+        if(saved) return saved;
+        try{
+          const r = await rpcCall("eth_call",[{to:SEED_V3_POOL,data:"0xc45a0155"},"latest"]); // factory()
+          const a = hexAddr(r);
+          if(a && !/^0x0{40}$/.test(a)){ store.set("ticker.v3factory", a); return a; }
+        }catch{}
+        return null;
+      }
+      async function getQuoteDecimals(){
+        let m = store.get("ticker.qdec");
+        if(m) return m;
+        m = {[WETH_ADDR]:18,[USDG_ADDR]:18,[USDE_ADDR]:18};
+        try{
+          const res = await rpcBatch([{to:WETH_ADDR,data:"0x313ce567"},{to:USDG_ADDR,data:"0x313ce567"},{to:USDE_ADDR,data:"0x313ce567"}]); // decimals()
+          const ds = res.map(r=>{ const w=hexWord(r,0); return w==null?null:Number(w); });
+          if(ds.every(d=>d!=null&&d>0&&d<=36)){ m={[WETH_ADDR]:ds[0],[USDG_ADDR]:ds[1],[USDE_ADDR]:ds[2]}; store.set("ticker.qdec", m); }
+        }catch{}
+        return m;
+      }
+      async function factoryDiscover(list){
+        const fac = await getV3Factory();
+        if(!fac || !list.length) return {exact:0, miss:list};
+        const qdec = await getQuoteDecimals();
+        const quotes = [WETH_ADDR, USDG_ADDR, USDE_ADDR].filter(q=>QUOTE_USD(q)!=null);
+        if(!quotes.length) return {exact:0, miss:list};
+        // stage 1: getPool(token, quote, fee) for every combination — batched
+        const calls=[], keys=[];
+        for(const h of list) for(const q of quotes) for(const fee of V3_FEES){
+          calls.push({to:fac, data:"0x1698ee82"+w32(lc(h.addr).slice(2))+w32(q.slice(2))+feePad(fee)});
+          keys.push({h,q});
+        }
+        const res=[];
+        for(let i=0;i<calls.length;i+=100){
+          try{ const r = await rpcBatch(calls.slice(i,i+100)); res.push(...r); }
+          catch{ res.push(...new Array(Math.min(100,calls.length-i)).fill(null)); }
+        }
+        const cands=[];
+        res.forEach((r,i)=>{ const a=hexAddr(r); if(a && !/^0x0{40}$/.test(a)) cands.push({h:keys[i].h, q:keys[i].q, pool:a}); });
+        if(!cands.length) return {exact:0, miss:list};
+        // stage 2: slot0 + quote-side balance for every candidate pool — batched
+        const calls2=[];
+        cands.forEach(c=>{ calls2.push({to:c.pool,data:"0x3850c7bd"}); calls2.push({to:c.q,data:"0x70a08231"+w32(c.pool.slice(2))}); });
+        const res2=[];
+        for(let i=0;i<calls2.length;i+=100){
+          try{ const r = await rpcBatch(calls2.slice(i,i+100)); res2.push(...r); }
+          catch{ res2.push(...new Array(Math.min(100,calls2.length-i)).fill(null)); }
+        }
+        // deepest valid pool per token wins → price, cache, done
+        const best=new Map();
+        cands.forEach((c,i)=>{
+          const sqrt=hexWord(res2[i*2],0), qBal=hexWord(res2[i*2+1],0);
+          if(sqrt==null || qBal==null || sqrt===0n) return;
+          const u=QUOTE_USD(c.q); if(u==null) return;
+          const qd=qdec[c.q]??18;
+          const qUsd=(Number(qBal)/Math.pow(10,qd))*u;
+          if(qUsd<25) return; // dust pool
+          const cur=best.get(lc(c.h.addr));
+          if(!cur||qUsd>cur.qUsd) best.set(lc(c.h.addr), {c,sqrt,qUsd,qd});
+        });
+        let exact=0; const missSet=new Set(list.map(h=>lc(h.addr)));
+        best.forEach(({c,sqrt,qUsd,qd},tok)=>{
+          const h=c.h;
+          const t0is = BigInt(lc(h.addr)) < BigInt(c.q); // v3 orders token0 by address
+          const d0=t0is?h.decimals:qd, d1=t0is?qd:h.decimals;
+          const H=Math.pow(Number(sqrt)/Math.pow(2,96),2)*Math.pow(10,d0-d1);
+          const pQ=t0is?H:1/H;
+          const u=QUOTE_USD(c.q);
+          if(!isFinite(pQ)||pQ<=0||u==null) return;
+          h.price=pQ*u; h.value=h.amount*h.price; h.approx=false;
+          h.pool={liq:qUsd*2, quote:QUOTE_SYM(c.q), exact:true};
+          store.set("ticker.pool."+tok, {pool:lc(c.pool), quoteAddr:c.q, qDec:qd, t0is, ver:"v3", ts:Date.now()});
+          missSet.delete(tok); exact++;
+        });
+        return {exact, miss:list.filter(h=>missSet.has(lc(h.addr)))};
+      }
+
+      async function poolPriceAll(unpriced){
+        let exact=0, approx=0;
+
+        // ---- FAST PATH: pools we already know → ONE batched RPC call, zero explorer hits
+        const cached=[], fresh=[];
+        for(const h of unpriced){
+          const meta = store.get("ticker.pool."+lc(h.addr));
+          if(meta && meta.pool && meta.quoteAddr && meta.ver && Date.now()-meta.ts < 6048e5) cached.push({h,meta});
+          else fresh.push(h);
+        }
+        if(cached.length){
+          setStatus(`<span class="spin"></span> Pricing ${cached.length} known pools…`);
+          try{
+            const calls=[], at=[];
+            cached.forEach(({meta})=>{
+              at.push(calls.length);
+              if(meta.ver==="v3"){
+                calls.push({to:meta.pool,data:"0x3850c7bd"}); // slot0
+                calls.push({to:meta.quoteAddr,data:"0x70a08231000000000000000000000000"+meta.pool.slice(2).toLowerCase()}); // balanceOf(pool) → liquidity
+              } else {
+                calls.push({to:meta.pool,data:"0x0902f1ac"}); // getReserves
+              }
+            });
+            const res = await rpcBatch(calls);
+            cached.forEach(({h,meta},i)=>{
+              const base=at[i]; let price=null, qUsd=null;
+              const u = QUOTE_USD(lc(meta.quoteAddr));
+              if(u!=null){
+                if(meta.ver==="v3"){
+                  const sqrt=hexWord(res[base],0), qBal=hexWord(res[base+1],0);
+                  if(sqrt){
+                    const d0=meta.t0is?h.decimals:meta.qDec, d1=meta.t0is?meta.qDec:h.decimals;
+                    const H=Math.pow(Number(sqrt)/Math.pow(2,96),2)*Math.pow(10,d0-d1);
+                    const pQ=meta.t0is?H:1/H;
+                    if(isFinite(pQ)&&pQ>0) price=pQ*u;
+                  }
+                  if(qBal!=null) qUsd=(Number(qBal)/Math.pow(10,meta.qDec))*u;
+                } else {
+                  const r0=hexWord(res[base],0), r1=hexWord(res[base],1);
+                  if(r0!=null&&r1!=null){
+                    const d0=meta.t0is?h.decimals:meta.qDec, d1=meta.t0is?meta.qDec:h.decimals;
+                    const a0=Number(r0)/Math.pow(10,d0), a1=Number(r1)/Math.pow(10,d1);
+                    const tokAmt=meta.t0is?a0:a1, qAmt=meta.t0is?a1:a0;
+                    if(tokAmt>0){ price=(qAmt*u)/tokAmt; qUsd=qAmt*u; }
+                  }
+                }
+              }
+              if(price!=null){ h.price=price; h.value=h.amount*price; h.approx=false; h.pool={liq:(qUsd??25)*2, quote:QUOTE_SYM(lc(meta.quoteAddr)), exact:true}; exact++; }
+              else fresh.push(h); // stale cache → rediscover below
+            });
+          }catch{ cached.forEach(({h})=>{ if(h.price==null) fresh.push(h); }); }
+        }
+
+        // ---- FACTORY PATH: ask the DEX factory directly, all tokens at once
+        let fresh2 = fresh;
+        if(fresh.length){
+          setStatus(`<span class="spin"></span> Locating pools for ${fresh.length} tokens (batched)…`);
+          try{
+            const r = await factoryDiscover(fresh);
+            exact += r.exact;
+            fresh2 = r.miss;
+          }catch{}
+        }
+
+        // ---- EXPLORER FALLBACK: rare non-v3 pools only. Capped per load, with
+        //      a 6h "no pool" memory so spam is never rescanned every load.
+        const scan = fresh2.filter(h=>{
+          const np = store.get("ticker.nopool."+lc(h.addr));
+          return !(np && Date.now()-np.ts < 216e5);
+        }).slice(0,6);
+        const found=[];
+        for(let i=0;i<scan.length;i+=8){
+          setStatus(`<span class="spin"></span> Deep-scanning ${scan.length} stubborn tokens…`);
+          await Promise.all(scan.slice(i,i+8).map(async h=>{
+            let f = poolCache.get(lc(h.addr));
+            if(f===undefined){ f = await findPool(h); poolCache.set(lc(h.addr), f); }
+            if(f) found.push({h,f});
+            else store.set("ticker.nopool."+lc(h.addr), {ts:Date.now()});
+          }));
+        }
+        if(!found.length) return {exact,approx};
+        let results=null;
+        try{
+          const calls=[];
+          found.forEach(({f})=>{ calls.push({to:f.pool,data:"0x3850c7bd"}); calls.push({to:f.pool,data:"0x0dfe1681"}); calls.push({to:f.pool,data:"0x0902f1ac"}); });
+          results = await rpcBatch(calls); // slot0, token0, getReserves per pool
+        }catch{}
+        found.forEach(({h,f},idx)=>{
+          let price=null, isExact=false, ver=null, tokenIs0=null;
+          if(results){
+            const slot0=results[idx*3], t0res=results[idx*3+1], resv=results[idx*3+2];
+            const t0=hexAddr(t0res);
+            if(t0!=null && f.quoteUsd1!=null){
+              tokenIs0 = lc(t0)===lc(h.addr);
+              const d0 = tokenIs0? h.decimals : f.qDec, d1 = tokenIs0? f.qDec : h.decimals;
+              const sqrt=hexWord(slot0,0);
+              if(sqrt){ // Uniswap v3: price = (sqrtPriceX96/2^96)^2, token1-raw per token0-raw
+                const H = Math.pow(Number(sqrt)/Math.pow(2,96),2) * Math.pow(10, d0-d1);
+                const pQuote = tokenIs0 ? H : 1/H;
+                if(isFinite(pQuote)&&pQuote>0){ price = pQuote*f.quoteUsd1; isExact=true; ver="v3"; }
+              } else { // Uniswap v2: reserves ratio is exact
+                const r0=hexWord(resv,0), r1=hexWord(resv,1);
+                if(r0!=null&&r1!=null){
+                  const a0=Number(r0)/Math.pow(10,d0), a1=Number(r1)/Math.pow(10,d1);
+                  const tokAmt=tokenIs0?a0:a1, qAmt=tokenIs0?a1:a0;
+                  if(tokAmt>0){ price=(qAmt*f.quoteUsd1)/tokAmt; isExact=true; ver="v2"; }
+                }
+              }
+            }
+          }
+          // balance-ratio ONLY when the RPC itself was unreachable. If the RPC
+          // answered and this contract speaks neither v3 nor v2, it is NOT an
+          // AMM pool (locker/treasury co-holding both tokens) — no price at all.
+          if(price==null && results===null && f.tokAmt>0 && f.quoteUsd1!=null){ price=f.qUsd/f.tokAmt; h.approx=true; approx++; }
+          else if(price!=null) exact++;
+          if(price!=null){ h.price=price; h.value=h.amount*price; h.pool={liq:f.qUsd*2, quote:QUOTE_SYM(f.quoteAddr), exact:isExact}; }
+          if(isExact && ver){ // remember everything → next load is a single RPC batch
+            store.set("ticker.pool."+lc(h.addr), {pool:lc(f.pool), quoteAddr:lc(f.quoteAddr), qDec:f.qDec, t0is:tokenIs0, ver, ts:Date.now()});
+          }
+        });
+        return {exact,approx};
+      }
+
+      async function enrichPrices(){
+        const toks = holdings.filter(h=>h.addr!=="native");
+        if(!toks.length){ finalStatus({exact:0,approx:0}); return; }
+        setStatus(`<span class="spin"></span> Pricing ${toks.length} tokens…`);
+
+        // known quotes immediately ($1 stables, WETH = ETH price)
+        toks.forEach(h=>{ if(h.price==null){ const u=QUOTE_USD(lc(h.addr)); if(u!=null){ h.price=u; h.value=h.amount*u; } } });
+
+        // PRIMARY: our on-chain pool engine. The DEX index runs purely in the
+        // background — it fills volume / market cap / 24h change and any token
+        // the pools couldn't price, but nothing ever waits for it.
+        (async ()=>{
+          try{
+            const r = await dexPrices(toks.map(h=>h.addr));
+            const qdec = await getQuoteDecimals();
+            toks.forEach(h=>{
+              const d = r.map.get(lc(h.addr));
+              if(d){
+                if(d.price!=null && h.price==null){ h.price=d.price; h.value=h.amount*d.price; h.approx=false; }
+                if(d.mc!=null) h.mc=d.mc;
+                if(d.vol && d.vol.h24!=null) h.vol=d.vol.h24;
+                h.dex=d;
+                poolMetaFromDex(h, d, qdec); // learn the pool → RPC refresher covers it
+              }
+            });
+            applySanity(); sortHoldings();
+            if($("detailview").style.display!=="block") renderHoldings();
+            const weakIgnored = toks.filter(h=>h.price==null && r.weak && r.weak.has(lc(h.addr))).length;
+            finalStatus({dexOk:r.ok, weakIgnored});
+            computeListPnl(); // index may have priced tokens the pools missed — include them
+          }catch{ finalStatus({dexOk:false}); }
+        })();
+
+        const un = toks.filter(h=>h.price==null).slice(0,60);
+        let pool={exact:0,approx:0};
+        if(un.length){ try{ pool = await poolPriceAll(un); }catch{} }
+        toks.forEach(h=>{ h._enriched=true; });
+        applySanity();
+        sortHoldings(); renderHoldings();
+        finalStatus({...pool});
+        detectRewards(); // background: file reward/tax tokens under RWA by contract name
+        computeListPnl(); // NOW tokens have prices — build the P&L column
+      }
+      // --- live price refresh: one batched RPC re-read of the pools -----------
+      async function refreshPrices(targets){
+        const entries=[];
+        for(const h of targets){
+          if(h.addr==="native") continue;
+          const meta = store.get("ticker.pool."+lc(h.addr));
+          if(meta && meta.pool && meta.ver && meta.quoteAddr) entries.push({h,meta});
+        }
+        if(!entries.length) return 0;
+        const calls=[], at=[];
+        entries.forEach(({meta})=>{ at.push(calls.length);
+          if(meta.ver==="v3"){ calls.push({to:meta.pool,data:"0x3850c7bd"}); calls.push({to:meta.quoteAddr,data:"0x70a08231"+w32(meta.pool.slice(2))}); }
+          else calls.push({to:meta.pool,data:"0x0902f1ac"});
+        });
+        let res; try{ res = await rpcBatch(calls); }catch{ return 0; }
+        let n=0;
+        entries.forEach(({h,meta},i)=>{
+          const base=at[i]; const u=QUOTE_USD(lc(meta.quoteAddr)); if(u==null) return;
+          let price=null, qUsd=null;
+          if(meta.ver==="v3"){
+            const sqrt=hexWord(res[base],0), qBal=hexWord(res[base+1],0);
+            if(sqrt && sqrt!==0n){
+              const d0=meta.t0is?h.decimals:meta.qDec, d1=meta.t0is?meta.qDec:h.decimals;
+              const H=Math.pow(Number(sqrt)/Math.pow(2,96),2)*Math.pow(10,d0-d1);
+              const pQ=meta.t0is?H:1/H;
+              if(isFinite(pQ)&&pQ>0) price=pQ*u;
+            }
+            if(qBal!=null) qUsd=(Number(qBal)/Math.pow(10,meta.qDec))*u;
+          } else {
+            const r0=hexWord(res[base],0), r1=hexWord(res[base],1);
+            if(r0!=null&&r1!=null){
+              const d0=meta.t0is?h.decimals:meta.qDec, d1=meta.t0is?meta.qDec:h.decimals;
+              const a0=Number(r0)/Math.pow(10,d0), a1=Number(r1)/Math.pow(10,d1);
+              const tokAmt=meta.t0is?a0:a1, qAmt=meta.t0is?a1:a0;
+              if(tokAmt>0){ price=(qAmt*u)/tokAmt; qUsd=qAmt*u; }
+            }
+          }
+          if(price!=null){ h.price=price; h.value=h.amount*price; h.approx=false; h.pool={liq:(qUsd??25)*2, quote:QUOTE_SYM(lc(meta.quoteAddr)), exact:true}; n++; }
+        });
+        if(n) applySanity();
+        return n;
+      }
+      // when the DEX index reveals a token's pool address, remember it — from then
+      // on every price (list AND detail) is read live from that pool over RPC,
+      // so the two screens can never disagree.
+      function poolMetaFromDex(h, d, qdec){
+        if(!d || !d.pair || !/^0x[0-9a-f]{40}$/.test(d.pair)) return;
+        if(!d.quoteAddr || QUOTE_USD(d.quoteAddr)==null) return;
+        if(store.get("ticker.pool."+lc(h.addr))) return;
+        store.set("ticker.pool."+lc(h.addr), {
+          pool: d.pair, quoteAddr: d.quoteAddr, qDec: (qdec && qdec[d.quoteAddr]) ?? 18,
+          t0is: BigInt(lc(h.addr)) < BigInt(d.quoteAddr), ver: d.v3 ? "v3" : "v2", ts: Date.now()
+        });
+      }
+      let detailTimer = null;
+      async function refreshDetailPrice(h){
+        if(h.addr==="native"){
+          try{ const st=await api(`/stats`); if(st && st.coin_price!=null){ ethUsd=parseFloat(st.coin_price); h.price=ethUsd; h.value=h.amount*ethUsd; } }catch{}
+          return;
+        }
+        const n = await refreshPrices([h]);
+        if(!n){ // no pool meta yet — ask the index, and learn the pool from its answer
+          try{
+            const r = await dexPrices([h.addr]);
+            const d = r.map.get(lc(h.addr));
+            if(d && d.price!=null){
+              h.price=d.price; h.value=h.amount*d.price; h.dex=d; applySanity();
+              poolMetaFromDex(h, d, await getQuoteDecimals()); // next refresh reads the pool directly
+            }
+          }catch{}
+        }
+      }
+
+      let statusInfo = null;
+      function finalStatus(o){ statusInfo = {...(statusInfo||{}), ...o}; renderStatus(); }
+      function renderStatus(){
+        const o = statusInfo || {};
+        const priced = holdings.filter(h=>h.price!=null && !h.suspect).length;
+        const bits = [`${priced}/${holdings.length} priced`];
+        if(o.exact) bits.push(`${o.exact} from pools`);
+        if(o.approx) bits.push(`${o.approx} approx ≈`);
+        if(o.pnlTot) bits.push(`cost basis ${o.pnlDone||0}/${o.pnlTot}`);
+        bits.push(o.dexOk==null ? "index: fetching stats in background" : o.dexOk ? "index ✓" : "index unreachable (pools used)");
+        const scams = holdings.filter(h=>h.suspect).length + (o.weakIgnored||0);
+        if(scams) bits.push(`${scams} scam-priced ignored`);
+        if(nativeFailed) bits.push(`ETH balance unreadable this load`);
+        const none = priced<=1 && holdings.length>1;
+        setStatus(`<span class="ok">✓</span> ${holdings.length} assets for ${short(addr)} · ${bits.join(" · ")} · ${dstr(Date.now())}` + (none?` <span class="bad">— every price route failed; copy me this whole line</span>`:``));
+      }
+
+      async function loadTransfers(a){
+        let items=[], url=`/addresses/${a}/token-transfers?type=ERC-20`, page=0;
+        try{
+          while(url && page<25){
+            let r=null;
+            try{ r = await api(url); }
+            catch{ try{ r = await api(url); }catch{ break; } } // one retry, then keep what we have
+            items.push(...(r.items||[]));
+            const np = r.next_page_params;
+            if(!np){ break; }
+            url = `/addresses/${a}/token-transfers?type=ERC-20&`+new URLSearchParams(np).toString();
+            page++;
+          }
+        }catch{}
+        transfers = items; // partial history beats none
+      }
+
+      // --- per-token history: small, targeted, reliable -----------------------
+      const tokenXfers = new Map();          // cached ONLY on a fully successful fetch
+      const tokenXfersPartial = new Set();   // history longer than the page cap
+      const tokenXfersFailed = new Set();    // last fetch attempt was throttled
+      const tokenXfersInflight = new Map();  // dedupe: list worker + detail page ask for the same token at once
+      // "useful data only": an inbound transfer worth under $5 at the token's
+      // current price is a reward drip / dust — it is dropped THE MOMENT it is
+      // fetched. It never gets priced, never costs a receipt lookup, never
+      // renders. Outbound transfers (your sells) are always kept.
+      function dropMicroIn(k, items){
+        const hh = holdings.find(x=>lc(x.addr)===k);
+        const hp = hh && hh.price!=null ? hh.price : null;
+        if(hp==null) return items; // can't judge value yet — keep everything
+        const me = lc(addr);
+        return items.filter(it=>{
+          if(!it.total || !it.token) return true;
+          if(lc((it.to&&it.to.hash)||"")!==me) return true; // outbound: keep
+          const amt = toAmt(it.total.value, parseInt((it.total.decimals ?? it.token.decimals) ?? "18"));
+          return amt*hp >= 5;
+        });
+      }
+      // net token flow of an item set for this wallet (in − out), for judging
+      // how much of the real balance a reconstruction accounts for
+      function netOf(items, me){
+        let net=0;
+        for(const it of items){
+          if(!it.total || !it.token) continue;
+          const v = toAmt(it.total.value, parseInt((it.total.decimals ?? it.token.decimals) ?? "18"));
+          if(lc((it.to&&it.to.hash)||"")===me) net+=v;
+          if(lc((it.from&&it.from.hash)||"")===me) net-=v;
+        }
+        return net;
+      }
+      // --- trades-first history: pull ONLY transfers that can be trades -------
+      // A drip is an inbound send from a distributor. It can never be (a) a
+      // transfer the wallet SENT, (b) the token leaving ITS OWN POOL to the
+      // wallet, or (c) part of a tx where the wallet paid WETH / stables.
+      // Querying just those three shapes skips every drip AT THE NODE — the
+      // whole life of a token costs a handful of calls, back to day one.
+      let payLogsCache = null; // wallet-wide "what did I ever pay" — one fetch per wallet
+      async function walletPayTxs(){
+        const me = lc(addr);
+        if(payLogsCache && payLogsCache.wallet===me) return payLogsCache;
+        try{
+          const r = await rpcMulti([{method:"eth_getLogs",params:[{address:[WETH_ADDR, USDG_ADDR, USDE_ADDR], topics:[TRANSFER_TOPIC, padTopic(me)], fromBlock:"0x1", toBlock:"latest"}]}]);
+          if(!Array.isArray(r[0])) return null;
+          payLogsCache = { wallet: me, logs: r[0] };
+          return payLogsCache;
+        }catch{ return null; }
+      }
+      async function tradesFirstHistory(k, me, hh){
+        // (a) everything the wallet ever sent of this token — sells; always few
+        let sent=null;
+        try{ const r = await rpcMulti([{method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, padTopic(me)], fromBlock:"0x1", toBlock:"latest"}]}]); if(Array.isArray(r[0])) sent=r[0]; }catch{}
+        if(!sent) return null; // if even this tiny query fails, the RPC is unhappy
+        // (b) the token leaving ANY of its pools to the wallet — that IS a buy.
+        // ALL pairs (today's pool AND older/parallel ones) come from the DEX
+        // index once and are cached; buys from a migrated pool aren't lost.
+        let pools = [];
+        const pc = store.get("ticker.pairs."+k);
+        if(pc && Array.isArray(pc.pools) && pc.pools.length) pools = pc.pools;
+        else{
+          try{
+            const d = await fetchJson(DEX_API+k);
+            pools = [...new Set((d.pairs||[]).filter(p=>p.chainId==="robinhood" && p.pairAddress).map(p=>lc(p.pairAddress)))].slice(0,6);
+            if(pools.length) store.set("ticker.pairs."+k, {ts:Date.now(), pools});
+          }catch{}
+        }
+        const meta = store.get("ticker.pool."+k)||{};
+        if(meta.pool && !pools.includes(lc(meta.pool))) pools.push(lc(meta.pool));
+        let poolIns=[];
+        if(pools.length){
+          try{
+            const r = await rpcMulti(pools.map(p=>({method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, padTopic(p), padTopic(me)], fromBlock:"0x1", toBlock:"latest"}]})));
+            r.forEach(x=>{ if(Array.isArray(x)) poolIns.push(...x); });
+          }catch{}
+        }
+        // (c) every tx where the wallet paid WETH / USDG / USDe (router hops)
+        const pay = await walletPayTxs();
+        const txBlock = new Map();
+        const note = (l)=>{ if(l && l.transactionHash){ let bn=0; try{ bn=Number(BigInt(l.blockNumber)); }catch{} const p=txBlock.get(l.transactionHash)||0; txBlock.set(l.transactionHash, Math.max(p,bn)); } };
+        sent.forEach(note); poolIns.forEach(note); if(pay) pay.logs.forEach(note);
+        if(!txBlock.size) return {items:[], covered:false};
+        const txhs = [...txBlock.entries()].sort((a,b)=>b[1]-a[1]).slice(0,80).map(e=>e[0]); // newest 80 trades — the hard cap
+        try{ await fetchTradeInfos(txhs.filter(x=>!txInfoCache.has(x))); }catch{}
+        const items=[];
+        for(const txh of txhs){
+          const info = txInfoCache.get(txh); if(!info || !info.legs) continue;
+          for(const lg of info.legs){
+            if(lg.addr!==k || !lg.to) continue;
+            const isIn = lg.to===me, isOut = lg.from===me;
+            if(!isIn && !isOut) continue;
+            if(isIn && !isOut && hh && hh.price!=null && lg.amount*hh.price < 5) continue; // micro — not wanted
+            items.push({ token:{address_hash:k, decimals:"0", symbol:hh?hh.symbol:"?"},
+              total:{value:String(lg.amount), decimals:"0"},
+              from:{hash:lg.from}, to:{hash:lg.to},
+              transaction_hash: txh, timestamp: info.ts });
+          }
+        }
+        // does what we found account for the wallet's actual stack?
+        const covered = hh && hh.amount>0 ? netOf(items, me) >= hh.amount*0.7 : items.length>0;
+        return {items, covered};
+      }
+      // fetch Transfer logs for one token+wallet by bisecting the block range,
+      // NEWEST ranges first, under HARD BUDGETS — we want the recent trades
+      // that define the current stack, not an archaeology dig. When the budget
+      // runs out we keep what we have (the newest window) instead of failing.
+      async function getLogsRange(k, f, t2, depth, acc){
+        if(acc.stop) return;
+        const fh="0x"+f.toString(16), th="0x"+t2.toString(16);
+        try{
+          acc.calls++;
+          const r = await rpcMulti([
+            {method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, null, padTopic(addr)], fromBlock:fh, toBlock:th}]},
+            {method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, padTopic(addr)], fromBlock:fh, toBlock:th}]},
+          ]);
+          if(Array.isArray(r[0]) && Array.isArray(r[1])){
+            acc.raw += r[0].length + r[1].length;
+            acc.ins.push(...r[0]); acc.outs.push(...r[1]);
+            if(acc.raw > 6000 || acc.calls >= 40){ acc.stop = true; acc.truncated = true; } // budget spent — newest window wins
+            return;
+          }
+        }catch{}
+        if(acc.calls >= 40){ acc.stop = true; acc.truncated = true; return; }
+        if(depth >= 7 || (t2 - f) < 20000){ acc.truncated = true; return; } // this slice stays dark — carry on with the rest
+        const mid = Math.floor((f + t2) / 2);
+        await getLogsRange(k, mid + 1, t2, depth + 1, acc); // newest half FIRST
+        await getLogsRange(k, f, mid, depth + 1, acc);
+      }
+      async function chainLogsChunked(k){
+        let latest = chainAnchor && chainAnchor.ln;
+        try{ const bn = await rpcMulti([{method:"eth_blockNumber",params:[]}]); if(bn && bn[0]) latest = Number(BigInt(bn[0])); }catch{}
+        if(!latest) return null;
+        const acc = {ins:[], outs:[], raw:0, calls:0, stop:false, truncated:false};
+        await getLogsRange(k, 1, latest, 0, acc);
+        if(!acc.ins.length && !acc.outs.length && acc.truncated) return null; // nothing usable at all
+        return acc;
+      }
+      async function ensureTokenTransfers(tokenAddr){
+        const k = lc(tokenAddr);
+        if(tokenXfers.has(k)) return tokenXfers.get(k);
+        if(tokenXfersInflight.has(k)) return tokenXfersInflight.get(k);
+        const p = ensureTokenTransfersInner(k);
+        tokenXfersInflight.set(k, p);
+        try{ return await p; } finally { tokenXfersInflight.delete(k); }
+      }
+      async function ensureTokenTransfersInner(k){
+        const me = lc(addr);
+        const hh0 = holdings.find(x=>lc(x.addr)===k);
+        // TRADES-FIRST is the primary path, explorer up or not. The explorer
+        // pages newest-first, and on a drip token the newest pages are ALL
+        // drips — your real trades sit behind the wall. The trade-shaped
+        // queries skip the wall entirely and reach back to day one.
+        let tf = null;
+        if(k!==WETH_ADDR && k!==USDG_ADDR && k!==USDE_ADDR){
+          try{
+            await warmChain();
+            tf = await tradesFirstHistory(k, me, hh0);
+            if(tf && tf.covered && tf.items.length){
+              tokenXfers.set(k, tf.items); // full story, drip-free — cache it
+              tokenXfersFailed.delete(k);
+              return tf.items;
+            }
+          }catch{}
+        }
+        // trades-first couldn't account for the whole stack (transfers from
+        // another wallet? unknown pool?) — top up from the explorer, then keep
+        // whichever reconstruction explains MORE of the real balance
+        let items=[], ok=!(bsDown || bs403Seen), hitCap=false; // explorer banned → chain logs
+        let url=`/addresses/${addr}/token-transfers?type=ERC-20&token=${k}`, page=0;
+        while(ok && url && page<8){ // hard page budget — recent history is the useful part
+          let r=null;
+          try{ r = await api(url); }
+          catch{ try{ r = await api(url); }catch{ ok=false; break; } } // one retry per page
+          items.push(...(r.items||[]));
+          const np = r.next_page_params;
+          if(!np) break;
+          if(page===7) hitCap=true;
+          url = `/addresses/${addr}/token-transfers?type=ERC-20&token=${k}&`+new URLSearchParams(np).toString();
+          page++;
+        }
+        if(ok){
+          items = dropMicroIn(k, items); // sub-$5 inbound drips die at the source
+          if(tf && tf.items.length && netOf(tf.items, me) > netOf(items, me)){
+            tokenXfers.set(k, tf.items); tokenXfersFailed.delete(k); tokenXfersPartial.add(k);
+            return tf.items;
+          }
+          tokenXfers.set(k, items); // a real answer — cache it
+          tokenXfersFailed.delete(k);
+          if(hitCap) tokenXfersPartial.add(k);
+          return items;
+        }
+        // explorer failed too — windowed scan straight from the chain
+        try{
+          await warmChain();
+          let ins=null, outs=null, truncated=false;
+          try{
+            const r = await rpcMulti([
+              {method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, null, padTopic(addr)], fromBlock:"0x1", toBlock:"latest"}]},
+              {method:"eth_getLogs",params:[{address:k, topics:[TRANSFER_TOPIC, padTopic(addr)], fromBlock:"0x1", toBlock:"latest"}]},
+            ]);
+            ins=r[0]; outs=r[1];
+          }catch{}
+          if(!Array.isArray(ins) || !Array.isArray(outs)){
+            // full-range query over-capped or errored — walk it in budgeted slices
+            const ch = await chainLogsChunked(k);
+            if(ch){ ins=ch.ins; outs=ch.outs; truncated=!!ch.truncated; }
+          }
+          if(Array.isArray(ins) && Array.isArray(outs)){
+            const hh = hh0;
+            const dec2 = hh && hh.decimals!=null ? hh.decimals : 18;
+            const conv = (lg)=>({
+              token:{address_hash:k, decimals:String(dec2), symbol:hh?hh.symbol:"?"},
+              total:{value:(()=>{try{return BigInt(lg.data).toString()}catch{return "0"}})(), decimals:null},
+              from:{hash:"0x"+(lg.topics[1]||"").slice(26)}, to:{hash:"0x"+(lg.topics[2]||"").slice(26)},
+              transaction_hash: lg.transactionHash, timestamp: blockTimeEstSync(lg.blockNumber)
+            });
+            const merged = dropMicroIn(k, [...ins, ...outs].filter(lg=>lg && lg.topics && lg.topics.length>=3).map(conv));
+            // keep whichever reconstruction explains MORE of the real balance
+            if(tf && tf.items.length && netOf(tf.items, me) > netOf(merged, me)){
+              tokenXfers.set(k, tf.items); tokenXfersFailed.delete(k); tokenXfersPartial.add(k);
+              return tf.items;
+            }
+            tokenXfers.set(k, merged); // chain logs ARE the ground truth — cache
+            tokenXfersFailed.delete(k);
+            if(truncated) tokenXfersPartial.add(k);
+            return merged;
+          }
+          if(tf && tf.items.length){ // window scan failed — partial trades beat nothing
+            tokenXfers.set(k, tf.items);
+            tokenXfersFailed.delete(k);
+            tokenXfersPartial.add(k);
+            return tf.items;
+          }
+        }catch{}
+        // even the RPC failed — fall back to the wallet-wide crawl WITHOUT caching
+        tokenXfersFailed.add(k);
+        return (transfers||[]).filter(x=>x.token && lc(x.token.address_hash)===k);
+      }
+
+      // --- automatic entry price from the ETH side of a swap ------------------
+      // Swaps here are usually paid in native ETH or WETH (no stablecoin leg),
+      // so the trade's USD cost = ETH amount × ETH's price on the trade date
+      // (daily chart from the explorer; falls back to the tx's own rate).
+      // hourly ETH/USD history (CoinGecko; bridged ETH = mainnet ETH) — gives the
+      // price AT the trade hour, so entries match what the exchange recorded.
+      let ethHist = null;
+      async function loadEthHist(){
+        if(ethHist!==null) return;
+        ethHist = [];
+        const cached = store.get("ticker.ethhist");
+        if(cached && Date.now()-cached.ts < 216e5 && Array.isArray(cached.p)){ ethHist = cached.p; return; }
+        try{
+          const d = await fetchJson("https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=30");
+          if(d && Array.isArray(d.prices) && d.prices.length){
+            ethHist = d.prices;
+            store.set("ticker.ethhist", {ts:Date.now(), p:ethHist});
+          }
+        }catch{}
+      }
+      let ethChart = null;
+      async function ethPriceAt(iso, fallbackRate){
+        const ms = iso ? Date.parse(iso) : NaN;
+        await loadEthHist();
+        if(!isNaN(ms) && ethHist && ethHist.length){
+          let best=null, bd=Infinity;
+          for(const pt of ethHist){ const dd=Math.abs(pt[0]-ms); if(dd<bd){ bd=dd; best=pt[1]; } }
+          if(best!=null && bd<=72e5) return best; // within 2h of an hourly point
+        }
+        if(ethChart===null){
+          ethChart = {};
+          const cached = store.get("ticker.ethchart");
+          if(cached && Date.now()-cached.ts < 432e5){ ethChart = cached.map || {}; }
+          else{
+            try{
+              const c = await api(`/stats/charts/market`);
+              (c.chart_data||[]).forEach(d=>{ if(d.date && d.closing_price!=null) ethChart[d.date]=parseFloat(d.closing_price); });
+              store.set("ticker.ethchart",{ts:Date.now(),map:ethChart});
+            }catch{}
+          }
+        }
+        const day = (iso||"").slice(0,10);
+        if(ethChart[day]!=null) return ethChart[day];
+        const t0 = Date.parse(day||"");
+        if(!isNaN(t0)) for(let d=1;d<=3;d++) for(const s of [-1,1]){
+          const kk = new Date(t0+s*d*864e5).toISOString().slice(0,10);
+          if(ethChart[kk]!=null) return ethChart[kk];
+        }
+        return fallbackRate!=null ? fallbackRate : ethUsd;
+      }
+      // trade price follows the EXCHANGE convention: ETH side ÷ tokens that left
+      // the pool (pre-aggregator-fee), matching what DexScreener records.
+      const txTokPrice = new Map(); // "txHash|token" -> USD price per token (≈)
+      const txInfoCache = new Map();
+      const blockTsCache = new Map(); // block hex -> exact ISO timestamp (trades deserve real dates, not estimates)
+      function tokDecOf(a){
+        if(a===WETH_ADDR) return 18;
+        const q = store.get("ticker.qdec"); if(q && q[a]!=null) return q[a];
+        const hh = holdings.find(x=>lc(x.addr)===a); if(hh && hh.decimals!=null) return hh.decimals;
+        const tm = store.get("ticker.tokmeta."+a); if(tm && tm.d!=null) return tm.d;
+        return 18;
+      }
+      // ALL trade lookups in ONE batched RPC request: tx (ETH paid) + receipt
+      // (every token leg). No explorer anywhere in this path.
+      async function fetchTradeInfos(txhs){
+        await warmChain();
+        for(let c=0; c<txhs.length; c+=40){ // ≤80 RPC calls per batch
+          const chunk = txhs.slice(c, c+40);
+          const calls=[]; chunk.forEach(h=>{ calls.push({method:"eth_getTransactionByHash",params:[h]}); calls.push({method:"eth_getTransactionReceipt",params:[h]}); });
+          let res;
+          try{ res = await rpcMulti(calls); }catch{ continue; }
+          // EXACT block timestamps for these trades (one extra batched call) —
+          // the linear estimate can drift on an L2, and a wrong hour means the
+          // wrong ETH price for the entry
+          const bns = [...new Set(chunk.map((h,i)=>{ const tx=res[i*2]; return tx && tx.blockNumber; }).filter(b=>b && !blockTsCache.has(b)))];
+          if(bns.length){
+            try{
+              const br = await rpcMulti(bns.map(b=>({method:"eth_getBlockByNumber",params:[b,false]})));
+              bns.forEach((b,j)=>{ const blk=br[j]; if(blk && blk.timestamp){ try{ blockTsCache.set(b, new Date(Number(BigInt(blk.timestamp))*1000).toISOString()); }catch{} } });
+            }catch{}
+          }
+          chunk.forEach((h,i)=>{
+            const tx=res[i*2], rc=res[i*2+1];
+            if(!tx || !rc) return; // unavailable right now — retried later
+            let eth = tx.value ? Number(BigInt(tx.value))/1e18 : 0;
+            let stableUsd=0; const legs=[], wethLegs=[];
+            for(const lg of (rc.logs||[])){
+              if(!lg || !lg.topics || lg.topics[0]!==TRANSFER_TOPIC || lg.topics.length<3) continue;
+              const ta = lc(lg.address||"");
+              let raw; try{ raw = BigInt(lg.data); }catch{ continue; }
+              const amt = Number(raw)/Math.pow(10, tokDecOf(ta));
+              const frm = "0x"+(lg.topics[1]||"").slice(26).toLowerCase();
+              const too = "0x"+(lg.topics[2]||"").slice(26).toLowerCase();
+              if(ta===WETH_ADDR){ wethLegs.push({from:frm, to:too, amount:amt}); if(amt>eth) eth=amt; }
+              else{
+                if((ta===USDG_ADDR || ta===USDE_ADDR) && amt>stableUsd) stableUsd=amt;
+                legs.push({addr:ta, from:frm, to:too, amount:amt});
+              }
+            }
+            const ts = tx.blockNumber ? (blockTsCache.get(tx.blockNumber) || blockTimeEstSync(tx.blockNumber)) : null;
+            txInfoCache.set(h, {eth, stableUsd, rate:null, ts, legs, wethLegs, txOk:true});
+          });
+        }
+      }
+      async function txTradeInfo(txh){
+        if(txInfoCache.has(txh)) return txInfoCache.get(txh);
+        // legs first — for router swaps the WETH leg alone is enough (1 call);
+        // the tx endpoint is only consulted when no WETH leg exists.
+        let eth=0, stableUsd=0, legs=[], wethLegs=[], ts=null, rate=null, legsOk=false, txOk=false;
+        try{
+          const lr = await api(`/transactions/${txh}/token-transfers`);
+          legsOk=true;
+          for(const l of (lr.items||[])){
+            if(!l.token || !l.total) continue;
+            if(ts==null && l.timestamp) ts=l.timestamp;
+            const a = toAmt(l.total.value, parseInt((l.total.decimals ?? l.token.decimals) ?? "18"));
+            const ta = lc(l.token.address_hash);
+            if(ta===WETH_ADDR){ wethLegs.push({from:lc((l.from&&l.from.hash)||""), to:lc((l.to&&l.to.hash)||""), amount:a}); if(a>eth) eth=a; }
+            else {
+              if((ta===USDG_ADDR || ta===USDE_ADDR) && a>stableUsd) stableUsd=a; // exact USD side
+              legs.push({addr:ta, from:lc((l.from&&l.from.hash)||""), to:lc((l.to&&l.to.hash)||""), amount:a});
+            }
+          }
+        }catch{}
+        if(!(eth>0) && !(stableUsd>0)){
+          try{
+            const tx = await api(`/transactions/${txh}`);
+            txOk=true;
+            rate = tx && tx.exchange_rate!=null ? parseFloat(tx.exchange_rate) : null;
+            if(tx && tx.value){ const v=Number(BigInt(tx.value))/1e18; if(v>eth) eth=v; }
+            if(tx && tx.timestamp) ts=tx.timestamp;
+          }catch{}
+        } else txOk=true;
+        if(!legsOk && !txOk) return null; // network failure — cache NOTHING, retry later
+        const out = { eth, stableUsd, rate, ts, legs, wethLegs, txOk };
+        txInfoCache.set(txh, out);
+        return out;
+      }
+      async function autoPriceFor(h, pos, cap){
+        if(!pos||!h) return false;
+        const t=lc(h.addr);
+        const meta = store.get("ticker.pool."+t)||{};
+        const poolLc = meta.pool ? lc(meta.pool) : null;
+        // reuse prices derived in previous sessions (persistent cache)
+        pos.events.forEach(e=>{
+          const key=e.tx+"|"+t;
+          if(!txTokPrice.has(key)){
+            const s = store.get("ticker.txp6."+key);
+            if(s !== null && s !== undefined) txTokPrice.set(key, s.p ?? null);
+          }
+        });
+        const pendAll = pos.events.filter(e=>e.price==null && !txTokPrice.has(e.tx+"|"+t));
+        // price the trades that DEFINE the current cost basis (the lots) first —
+        // pure recency starved old buys on tokens with lots of small transfers
+        const lotTx = new Set(pos.lots.filter(l=>l.price==null && !l.synthetic).map(l=>l.tx));
+        const pend = [...pendAll.filter(e=>lotTx.has(e.tx)), ...pendAll.filter(e=>!lotTx.has(e.tx))].slice(0, cap||16);
+        const had = pos.events.some(e=>txTokPrice.get(e.tx+"|"+t)!=null);
+        if(!pend.length) return had;
+        await ethPriceAt(null,null); // warm the price feeds once
+        // one batched RPC call covers every pending trade — this is the fast path
+        const missing = [...new Set(pend.map(e=>e.tx))].filter(x=>!txInfoCache.has(x));
+        if(missing.length){ try{ await fetchTradeInfos(missing); }catch{} }
+        let got=false;
+        await Promise.all(pend.map(async e=>{
+          const key=e.tx+"|"+t;
+          let info = txInfoCache.get(e.tx);
+          if(!info && !bsDown && !bs403Seen) info = await txTradeInfo(e.tx); // explorer only as last resort
+          if(info===null || info===undefined) return; // no verdict, a later pass retries
+          // trade size = the SUM of every leg leaving (buy) or entering (sell)
+          // this token's own pool — tax tokens split the pool's payout into a
+          // tax leg + your leg, and the exchange-recorded price divides by the
+          // TOTAL, not whichever leg happened to be logged first
+          let amt=null;
+          const mine = info.legs.filter(l=>l.addr===t);
+          if(poolLc){
+            const outOfPool = mine.filter(l=>l.from===poolLc);
+            const intoPool  = mine.filter(l=>l.to===poolLc);
+            if(e.type==="sell" && intoPool.length) amt = intoPool.reduce((s,l)=>s+l.amount,0);
+            else if(outOfPool.length) amt = outOfPool.reduce((s,l)=>s+l.amount,0);
+            else if(intoPool.length) amt = intoPool.reduce((s,l)=>s+l.amount,0);
+          }
+          if(!(amt>0) && mine.length) amt=Math.max(...mine.map(l=>l.amount));
+          if(!(amt>0)) amt=e.amount;
+          // ETH side: the WETH leg that fed THIS token's own pool, when known —
+          // otherwise a batch tx could bill one trade's ETH to another token
+          let ethSide = info.eth||0, ethTargeted=false;
+          if(poolLc && info.wethLegs && info.wethLegs.length){
+            const wl = info.wethLegs.find(l=>l.to===poolLc);
+            if(wl){ ethSide=wl.amount; ethTargeted=true; }
+          }
+          const otherTokens = new Set(info.legs.filter(l=>l.addr!==t).map(l=>l.addr));
+          let p=null, ambiguous=false;
+          if(info.stableUsd>0){ // paid in USDG/USDe — exact
+            const cand=info.stableUsd/amt;
+            if(isFinite(cand)&&cand>0) p=cand;
+          } else if(ethTargeted || (ethSide>0 && otherTokens.size<=1)){
+            const px = await ethPriceAt(info.ts, info.rate);
+            if(px!=null){
+              const cand=(ethSide*px)/amt;
+              if(isFinite(cand)&&cand>0) p=cand;
+            } else return; // no rate available right now — retry later, cache nothing
+          } else if(ethSide>0){
+            ambiguous = true; // multiple tokens moved and the ETH can't be attributed — don't guess
+          } else {
+            // token→token swap: value the leg this wallet PAID with, at that
+            // token's current price (≈ — memecoins have no price history anywhere)
+            const me2 = lc(addr);
+            let paidUsd = 0;
+            for(const l of info.legs){
+              if(l.addr===t || l.from!==me2) continue;
+              const ch = holdings.find(x=>lc(x.addr)===l.addr);
+              if(ch && ch.price!=null){ const u=l.amount*ch.price; if(u>paidUsd) paidUsd=u; }
+            }
+            if(paidUsd>0){ const cand=paidUsd/amt; if(isFinite(cand)&&cand>0) p=cand; }
+          }
+          if(p!=null){ txTokPrice.set(key, p); store.set("ticker.txp6."+key, {p}); got=true; }
+          else if(ambiguous && info.txOk){ txTokPrice.set(key, -1); store.set("ticker.txp6."+key, {p:-1}); } // unattributable — manual field
+          else if(info.txOk){ txTokPrice.set(key, null); store.set("ticker.txp6."+key, {p:null}); } // provenly no paid side (airdrop/claim) — final
+          // txOk false → the tx's ETH value was never read → no verdict, retried later
+        }));
+        return got || had;
+      }
+      async function autoPriceEvents(){ return autoPriceFor(curToken, curPos, 40); }
+
+      // --- overview P&L for the MAIN LIST -------------------------------------
+      // Runs after balances are on screen: reconstructs each held token's cost
+      // basis in the background and fills the P&L column row by row.
+      function computeCost(h, pos){
+        let costQty=0, cost=0, unknown=0, unresolved=0, micro=0;
+        const t=lc(h.addr);
+        pos.lots.forEach(l=>{
+          if(l.price!=null){
+            const lotCost = l.amount*l.price;
+            if(lotCost < 5){ micro++; return; } // under $5 at purchase (incl. $0 drips) — not P&L material
+            cost+=lotCost; costQty+=l.amount;
+          }
+          else{
+            unknown+=l.amount;
+            if(!l.synthetic && !l.manual){
+              const s = store.get("ticker.txp6."+l.tx+"|"+t);
+              if(s===null || s===undefined) unresolved++; // never determined (throttled) — retry later
+            }
+          }
+        });
+        h.avgCost = costQty>0 ? cost/costQty : null;
+        h.costQty = costQty;
+        h.costPartial = unknown>0;
+        h.costUnresolved = unresolved>0;
+        h.costNote = costQty>0 ? "" :
+          (micro>0 ? "rewards / micro receipts only — no purchase basis" :
+           pos.synthetic ? "history incomplete — open the token to set your average" :
+           `no purchases found (${pos.txCount||0} transfers seen)`);
+      }
+      let pnlRunning=false, pnlAgain=false;
+      async function computeListPnl(){
+        if(pnlRunning){ pnlAgain=true; return; } // a pass is live — queue one more
+        pnlRunning=true;
+        try{
+          // only positions worth ≥ $1 get automatic P&L (dust isn't worth the lookups;
+          // clicking into a token still computes it regardless)
+          const targets = holdings.filter(h=>h.addr!=="native" && h.amount>0 && !isDust(h) && !h.approx && h.value!=null && h.value>=1 && h.avgCost===undefined);
+          const queue=[...targets];
+          let pnlDone=0;
+          const worker = async ()=>{
+            while(queue.length){
+              const h = queue.shift();
+              const ck = "ticker.cost6."+lc(addr)+"."+lc(h.addr);
+              const cc = store.get(ck);
+              // same balance as last time → cost basis can't have changed → instant.
+              // A cached "no cost" is never trusted — recomputing it is cheap and
+              // this is how stale failure verdicts would otherwise fossilise.
+              if(cc && cc.avgCost!=null && cc.bal!=null && Math.abs(cc.bal-h.amount) <= Math.max(Math.abs(h.amount)*1e-6, 1e-12)){
+                h.avgCost=cc.avgCost; h.costQty=cc.costQty; h.costPartial=!!cc.costPartial;
+              } else {
+                // (no explorer? no problem — history and pricing are RPC-native
+                // now, so a blocked explorer no longer skips P&L)
+                try{
+                  await ensureTokenTransfers(h.addr);
+                  let pos = buildPosition(h.addr);
+                  // loop until EVERY transaction has a verdict — a batch cap must
+                  // never silently strand the trades behind a wall of drips.
+                  // STOP the moment a pass resolves nothing (throttled) — repeating
+                  // an identical pass just hammers the endpoints and gets us banned.
+                  let prevRemaining = Infinity;
+                  for(let r=0; r<10; r++){
+                    await autoPriceFor(h, pos, 40);
+                    pos = buildPosition(h.addr);
+                    const remaining = pos.events.filter(e=>e.price==null && !txTokPrice.has(e.tx+"|"+lc(h.addr))).length;
+                    if(!remaining || remaining>=prevRemaining) break; // done, or no progress — healing pass retries later
+                    prevRemaining = remaining;
+                  }
+                  computeCost(h, pos);
+                  if(tokenXfersFailed.has(lc(h.addr))){ h.costUnresolved=true; h.costNote="history fetch throttled — retrying"; }
+                  // cache only settled results — a throttled lookup must not freeze as "no cost"
+                  if(!h.costUnresolved) store.set(ck, {avgCost:h.avgCost, costQty:h.costQty, costPartial:!!h.costPartial, bal:h.amount, ts:Date.now()});
+                }catch(err){ h.avgCost=null; h.costUnresolved=true; h.costNote="error: "+String((err&&err.message)||err); }
+              }
+              pnlDone++;
+              finalStatus({pnlDone, pnlTot:targets.length}); // progress is visible, not mysterious
+              if($("detailview").style.display!=="block"){ renderRows(); renderHoldings(); } // row lands as soon as it's done
+            }
+          };
+          await Promise.all([worker(),worker(),worker()]); // 3 lanes
+          // healing pass: anything that hit throttling retries once the dust settles
+          const stuck = targets.filter(h=>h.costUnresolved);
+          if(stuck.length && pnlRetries<3){
+            pnlRetries++;
+            setTimeout(()=>{ stuck.forEach(h=>{ h.avgCost=undefined; h.costUnresolved=false; }); computeListPnl(); }, 15000);
+          }
+        } finally {
+          pnlRunning=false;
+          if(pnlAgain){ pnlAgain=false; computeListPnl(); } // tokens priced mid-pass get theirs
+        }
+      }
+      let pnlRetries=0;
+      // gentle perpetual healer: any position whose P&L never resolved (rate
+      // limits, momentary refusals, prices that arrived late) gets retried
+      // every 45 seconds until it lands — nothing stays "…" forever.
+      setInterval(()=>{
+        if(document.hidden) return; // hidden tab spends nothing
+        if(!addr || !holdings.length || pnlRunning) return;
+        if($("detailview").style.display==="block") return; // never compete with an open detail page
+        const stuck = holdings.filter(h=>h.addr!=="native" && !h.suspect && !h.approx && h.value!=null && h.value>=1 &&
+                                         (h.avgCost===undefined || h.costUnresolved));
+        if(!stuck.length) return;
+        stuck.forEach(h=>{ h.avgCost=undefined; h.costUnresolved=false; });
+        computeListPnl();
+      }, 45000);
+      function pnlCell(h){
+        if(h.addr==="native" || h.suspect) return '<span class="muted">—</span>';
+        if(h.approx) return '<span class="muted" title="price is a rough estimate — P&L not computed">—</span>';
+        if(h.value!=null && h.value<1 && h.avgCost===undefined) return '<span class="muted" title="under $1 — open the token to compute P&L">—</span>';
+        if(h.avgCost===undefined) return '<span class="muted">…</span>';
+        if(h.avgCost==null || h.price==null || !(h.costQty>0)) return h.costUnresolved ? `<span class="muted" title="${h.costNote||"still fetching"}">…</span>` : `<span class="muted" title="${h.costNote||"no cost basis"}">—</span>`;
+        const pnl=(h.price-h.avgCost)*h.costQty;
+        const pct=h.avgCost>0 ? (h.price-h.avgCost)/h.avgCost*100 : null; // rewards have a $0 basis
+        const cls=pnl>=0?"up":"down";
+        return `<b class="chg ${cls}">${pnl>=0?"+":"−"}${fmtUsd(Math.abs(pnl))}${pct!=null?` <span style="font-weight:500;font-size:11px">(${fmtPct(pct)})</span>`:""}</b><br><span class="muted" style="font-size:11px">@ ${h.avgCost>0?fmtPrice(h.avgCost):"$0 · received"}${h.costPartial?" · partial":""}</span>`;
+      }
+
+      // ---------- render list ----------
+      function renderHoldings(){
+        const total = holdings.reduce((s,h)=>s+((h.suspect?0:h.value)||0),0);
+        odoRender($("pfval"), "$" + total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
+        const approxAny = holdings.some(h=>h.approx && !h.suspect);
+        const susCount = holdings.filter(h=>h.suspect).length;
+        // ---- OVERALL WALLET P&L (unrealized, current stacks only) ----
+        let tPnl=0, tBasis=0, nPnl=0, nPend=0;
+        holdings.forEach(x=>{
+          if(x.suspect || x.addr==="native") return;
+          if(x.avgCost!=null && x.price!=null && x.costQty>0){ tPnl+=(x.price-x.avgCost)*x.costQty; tBasis+=x.avgCost*x.costQty; nPnl++; }
+          else if(x.avgCost===undefined && !x.approx && x.value!=null && x.value>=1) nPend++; // P&L worker will get to it
+        });
+        const pp=$("pfpnl");
+        if(pp){
+          if(nPnl){
+            const pct = tBasis>0 ? tPnl/tBasis*100 : null;
+            pp.innerHTML = `${tPnl>=0?"▲":"▼"} ${tPnl>=0?"+":"−"}${fmtUsd(Math.abs(tPnl))}${pct!=null?` (${fmtPct(pct)})`:""} <span class="lbl">P&amp;L · ${nPnl} position${nPnl===1?"":"s"}${nPend?` · ${nPend} loading…`:""}</span>`;
+            pp.style.display="";
+          } else if(nPend){
+            pp.innerHTML = `<span class="lbl"><span class="spin"></span> computing wallet P&amp;L…</span>`;
+            pp.style.display="";
+          } else pp.style.display="none";
+        }
+        $("pfsub").textContent = `${holdings.length} assets · wallet ${short(addr)}${approxAny?" · includes ≈ estimates":""}${susCount?` · ${susCount} fake-priced excluded`:""}`;
+        renderTabs(); renderRows();
+      }
+      function renderTabs(){
+        const tabs=[{k:"all",l:"All"},{k:"meme",l:"Memes"},{k:"rwa",l:"RWAs"},{k:"stocks",l:"Stocks"},{k:"cash",l:"Cash"}];
+        $("tabs").innerHTML = tabs.map(t=>{
+          const c = t.k==="all"?holdings.length:holdings.filter(h=>h.cat===t.k).length;
+          return `<button class="tab ${t.k===tab?'active':''}" data-tab="${t.k}">${t.l}<span class="cnt">${c}</span></button>`;
+        }).join("");
+        document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderTabs();renderRows();});
+      }
+      function renderRows(){
+        const inTab = holdings.filter(h=>tab==="all"||h.cat===tab);
+        const list = hideDust ? inTab.filter(h=>!isDust(h)) : inTab;
+        const hidden = inTab.length - list.length;
+        const hc=$("hiddenCount"); if(hc) hc.textContent = hidden?`${hidden} hidden (spam / under $0.20)`:"";
+        const body=$("rows"), empty=$("empty");
+        if(!list.length){ body.innerHTML=""; empty.style.display="block";
+          empty.innerHTML = (hideDust && inTab.length>0)
+            ? "<b>Everything here is spam or under $0.20</b>Uncheck “Hide tokens under $0.20” above to show it."
+            : tab==="stocks"?"<b>No tokenized stocks in this wallet</b>":tab==="meme"?"<b>No meme tokens in this wallet</b>":tab==="cash"?"<b>No cash assets in this wallet</b>ETH and stablecoins land here.":"<b>Nothing here</b>Try another tab."; return; }
+        empty.style.display="none";
+        let rowN=0;
+        body.innerHTML = list.map(h=>{
+          // live-tick effects: a cell whose number moved since the last paint
+          // flashes green/red and its new value slides in
+          const priceTick = (h._pv!=null && h.price!=null && h.price!==h._pv) ? (h.price>h._pv?"fl-up":"fl-down") : "";
+          const valTick   = (h._vv!=null && h.value!=null && Math.abs(h.value-h._vv)>0.005) ? (h.value>h._vv?"fl-up":"fl-down") : "";
+          const entrance  = h._seen ? "" : `class="rowin" style="animation-delay:${Math.min(rowN*35,420)}ms"`;
+          h._pv=h.price; h._vv=h.value; h._seen=true; rowN++;
+          return `
+          <tr data-addr="${h.addr}" ${entrance}>
+            <td><div class="asset">${icoHtml(h)}
+              <div class="nm"><b>${h.symbol}</b><span class="t">${(h.name||"").slice(0,26)}
+                <span class="catchip" style="color:${catColor(h.cat)};background:${catColor(h.cat)}1f">${CAT[h.cat].label}</span>${h.rewards?'<span class="catchip" style="color:#0B6B55;background:rgba(14,175,126,.14)">💸 rewards</span>':""}${h.impostor?'<span class="catchip" style="color:#F45531;background:rgba(244,85,49,.12)">⚠ impostor</span>':""}</span></div>
+            </div></td>
+            <td class="${priceTick}"><span class="tickwrap">${h.suspect?'<span class="sus">⚠ fake price</span>':(h.approx?"≈ ":"")+fmtPrice(h.price)}</span></td>
+            <td class="col-hide muted">${fmtUsd(h.vol)}</td>
+            <td class="col-hide">${fmtUsd(h.mc)}</td>
+            <td>${fmtAmt(h.amount)} <span class="muted">${h.symbol}</span></td>
+            <td class="${valTick}"><span class="tickwrap"><b>${h.suspect?'<span class="sus">—</span>':(h.approx?"≈ ":"")+fmtUsd(h.value)}</b></span></td>
+            <td>${pnlCell(h)}</td>
+          </tr>`;}).join("");
+        body.querySelectorAll("tr").forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.addr));
+      }
+
+      // ---------- cost-basis engine (reset-on-zero, average cost) ----------
+      function buildPosition(tokenAddr){
+        const t = lc(tokenAddr), me = lc(addr);
+        // a targeted per-token fetch is authoritative; the wallet-wide crawl is
+        // only a stand-in when no targeted data exists (mixing the two formats
+        // would double-count transfers)
+        const merged = tokenXfers.has(t) ? [...tokenXfers.get(t)] : [...(transfers||[])];
+        const seen = new Set(); const items=[];
+        for(const it of merged){
+          if(!it.token || !it.total) continue;
+          const key = (it.transaction_hash||"")+"|"+lc(it.token.address_hash)+"|"+lc((it.from&&it.from.hash)||"")+"|"+lc((it.to&&it.to.hash)||"")+"|"+it.total.value;
+          if(seen.has(key)) continue; seen.add(key); items.push(it);
+        }
+        const byTx = new Map();
+        for(const it of items){ const h=it.transaction_hash; if(!byTx.has(h)) byTx.set(h,[]); byTx.get(h).push(it); }
+        const amtOf = (it)=>toAmt(it.total.value, parseInt(it.total.decimals ?? it.token.decimals ?? "18"));
+        const inn=(it)=>lc(it.to?.hash)===me, out=(it)=>lc(it.from?.hash)===me;
+        const events=[];
+        const hcur = holdings.find(x=>lc(x.addr)===t);
+        for(const it of items){
+          if(lc(it.token.address_hash)!==t) continue;
+          const a=amtOf(it); if(!a) continue;
+          const isIn=inn(it), isOut=out(it); if(!isIn && !isOut) continue;
+          // micro rule at the source: inbound worth under $5 at the current
+          // price is a drip — skipped entirely, never priced, never shown
+          if(isIn && !isOut && hcur && hcur.price!=null && a*hcur.price < 5) continue;
+          let sIn=0,sOut=0;
+          for(const s of (byTx.get(it.transaction_hash)||[])){
+            if(!STABLES.has((s.token.symbol||"").toUpperCase())) continue;
+            const sa=amtOf(s); if(inn(s))sIn+=sa; if(out(s))sOut+=sa;
+          }
+          const time=new Date(it.timestamp).getTime();
+          let price = isIn ? (sOut>0?sOut/a:null) : (sIn>0?sIn/a:null), est=false, manual=false, received=false;
+          if(price==null){ const m=store.get("ticker.man."+me+"."+it.transaction_hash+"|"+t); if(m && m.p>0){ price=m.p; manual=true; } }
+          if(price==null){ const tp=txTokPrice.get(it.transaction_hash+"|"+t); if(tp!=null && tp>0){ price=tp; est=true; } }
+          // proven nothing-paid inbound transfer = reward/airdrop income → $0-cost lot
+          if(price==null && isIn && txTokPrice.has(it.transaction_hash+"|"+t) && txTokPrice.get(it.transaction_hash+"|"+t)===null){ price=0; received=true; }
+          events.push({time,type:isIn?"buy":"sell",amount:a,price,est,manual,received,tx:it.transaction_hash});
+        }
+        events.sort((a,b)=>a.time-b.time);
+        let qty=0, lots=[], resetDate=null; const EPS=1e-9;
+        for(const e of events){
+          if(e.type==="buy"){ qty+=e.amount; lots.push({amount:e.amount,price:e.price,est:e.est,manual:e.manual,received:e.received,time:e.time,tx:e.tx}); }
+          else {
+            qty-=e.amount;
+            if(qty<=EPS){ resetDate=e.time; qty=0; lots=[]; }
+            else { const f=qty/(qty+e.amount); lots=lots.map(l=>({...l,amount:l.amount*f})); }
+          }
+        }
+        // reconstruction says ~zero but the wallet demonstrably holds tokens →
+        // history has gaps (throttled pages, exotic routing). Give the user a
+        // single whole-balance lot with a manual average instead of a dead end.
+        const hh = holdings.find(x=>lc(x.addr)===t);
+        if(qty<=EPS && hh && hh.amount>0){
+          const mk = store.get("ticker.man."+me+".synthetic|"+t);
+          return { balance:hh.amount, synthetic:true,
+                   lots:[{amount:hh.amount, price:(mk&&mk.p>0)?mk.p:null, manual:true, synthetic:true, time:null, tx:"synthetic"}],
+                   resetDate, events, txCount:events.length };
+        }
+        return { balance:qty, lots, resetDate, events, txCount:events.length };
+      }
+
+      // ---------- detail ----------
+      let curToken=null, curPos=null;
+      async function openDetail(tokenAddr){
+        const h = holdings.find(x=>lc(x.addr)===lc(tokenAddr)); if(!h) return;
+        curToken=h;
+        const dv=$("detailview");
+        $("listview").style.display="none"; dv.style.display="block"; window.scrollTo(0,0);
+        // paint() renders instantly from what we have and repaints as data lands.
+        // Any render error is SHOWN, never a silent dead spinner.
+        const paint = ()=>{
+          if(curToken!==h) return;
+          const saved = {}; // preserve manually-typed lot prices across repaints
+          document.querySelectorAll(".lotin").forEach(el=>{ if(el.value) saved[el.dataset.i]=el.value; });
+          const histReady = tokenXfers.has(lc(tokenAddr)) || transfers!==null;
+          curPos = histReady ? buildPosition(tokenAddr) : null;
+          try{
+            dv.innerHTML = renderDetail(h, curPos, histReady);
+            wireDetail(h);
+            document.querySelectorAll(".lotin").forEach(el=>{ if(saved[el.dataset.i]!=null) el.value=saved[el.dataset.i]; });
+            recomputeSummary(h);
+          }catch(e){
+            dv.innerHTML = `<button class="back" id="back">← Back</button><div class="banner warn">Couldn’t render this token’s page — ${String((e&&e.message)||e)}. Copy me this message and I’ll fix it.</div>`;
+            $("back").onclick=()=>{ if(detailTimer){clearInterval(detailTimer);detailTimer=null;} dv.style.display="none"; $("listview").style.display="block"; curToken=null; };
+          }
+        };
+        paint(); // instant — nothing waits on the network
+        if(transfers===null){
+          const iv=setInterval(()=>{ if(curToken!==h){ clearInterval(iv); return; } if(transfers!==null){ clearInterval(iv); paint(); } }, 500);
+        }
+        // targeted history fetch + automatic entry pricing — loops until every
+        // transaction has a verdict, repainting as batches land
+        if(h.addr!=="native"){
+          ensureTokenTransfers(h.addr).then(async ()=>{
+            if(curToken!==h) return;
+            paint();
+            let prevRemaining = Infinity;
+            for(let r=0; r<12; r++){
+              await autoPriceEvents();
+              if(curToken!==h) return;
+              paint();
+              const pos = curPos; if(!pos) break;
+              const remaining = pos.events.filter(e=>e.price==null && !txTokPrice.has(e.tx+"|"+lc(h.addr))).length;
+              if(!remaining || remaining>=prevRemaining) break; // done, or no progress (throttled — later visits retry)
+              prevRemaining = remaining;
+            }
+          }).catch(()=>{});
+        }
+        // LIVE price: re-read the pool the moment the page opens, then every 20s
+        refreshDetailPrice(h).then(()=>{ if(curToken===h) paint(); }).catch(()=>{});
+        if(detailTimer){ clearInterval(detailTimer); }
+        detailTimer = setInterval(async ()=>{
+          if(document.hidden) return; // hidden tab spends nothing
+          if(curToken!==h){ clearInterval(detailTimer); detailTimer=null; return; }
+          await refreshDetailPrice(h).catch(()=>{});
+          if(curToken===h) paint();
+        }, 20000);
+        // holders / market data fill in quietly in the background
+        if(h.addr!=="native" && h.holders==null && !bsDown && !bs403Seen){
+          api(`/tokens/${h.addr}`).then(det=>{
+            if(det.holders_count) h.holders=parseInt(det.holders_count);
+            if(det.total_supply) h.supply=toAmt(det.total_supply,h.decimals);
+            if(h.mc==null && det.circulating_market_cap!=null) h.mc=parseFloat(det.circulating_market_cap);
+            applySanity(); // computed supply × price overrides a bogus index mcap
+            if(curToken===h) paint();
+          }).catch(()=>{});
+        }
+        // total supply straight from the contract — the market cap is then
+        // supply × live price, immune to whatever a dead pool claims
+        if(h.addr!=="native" && h.supply==null){
+          rpcBatch([{to:h.addr,data:"0x18160ddd"}]).then(r=>{
+            const w=hexWord(r[0],0);
+            if(w!=null){ h.supply=Number(w)/Math.pow(10,h.decimals||18); applySanity(); if(curToken===h) paint(); }
+          }).catch(()=>{});
+        }
+      }
+      function renderDetail(h, pos, ready){
+        const c = h.cat;
+        return `<div class="dhero dots"><button class="back" id="back">← Back</button>
+          <div class="dhead">${icoHtml(h)}
+            <div><h2>${h.name} <span class="catchip" style="font-size:12px;color:${catColor(c)};background:${catColor(c)}1f">${CAT[c].label}</span>${h.rewards?'<span class="catchip" style="font-size:12px">💸 rewards</span>':""}
+              <select id="catSel" class="catsel" title="Reclassify this token">
+                <option value="">auto</option><option value="stocks">Stock</option><option value="rwa">RWA</option><option value="meme">Meme</option><option value="cash">Cash</option>
+              </select></h2>
+              <div class="t"><a href="${EXPLORER}/token/${h.addr}" target="_blank">${short(h.addr)} ↗</a> · Robinhood Chain</div></div>
+            <div class="dprice"><div class="p">${h.approx?"≈ ":""}${fmtPrice(h.price)}</div>${(()=>{const c=h.dex&&h.dex.ch&&h.dex.ch.h24; return `<div class="d ${c==null?'':(c>=0?'up':'down')}">${c==null?'live price':arrow(c)+' '+fmtPct(c)+' · 24h'}</div>`;})()}</div>
+          </div></div>
+          ${h.suspect?`<div class="banner warn">⚠ This “price” is not real. The pool behind it holds only ${fmtUsd((h.dex&&h.dex.liq)||(h.pool&&h.pool.liq)||0)} of liquidity, so the claimed value could never actually be sold — this is the classic scam-airdrop trick. It’s excluded from your portfolio total. Don’t interact with this token or any site it advertises.</div>`:""}
+          ${h.impostor?`<div class="banner warn">⚠ Impersonator: this contract is named like an official Robinhood token, but it was <b>not</b> deployed by Robinhood’s issuer contract. The real tokenized stocks all come from one verified deployer — this one doesn’t. Treat it as a scam.</div>`:""}
+          <div class="statgrid">
+            ${statChg("24h change", h.dex&&h.dex.ch?h.dex.ch.h24:null)}
+            ${stat("24h volume",fmtUsd(h.vol!=null?h.vol:(h.dex&&h.dex.vol?h.dex.vol.h24:null)))}
+            ${stat("Market cap",fmtUsd(h.mc))}
+            ${stat("Liquidity",fmtUsd(h.dex?h.dex.liq:(h.pool?h.pool.liq:null)))}
+          </div>
+          <div class="statgrid">
+            ${statChg("1h", h.dex&&h.dex.ch?h.dex.ch.h1:null)}
+            ${statChg("6h", h.dex&&h.dex.ch?h.dex.ch.h6:null)}
+            ${stat("Holders",h.holders?h.holders.toLocaleString():"—")}
+            ${stat("Priced via",h.pool?(h.pool.exact?"on-chain pool · ":"pool balance ≈ · ")+h.pool.quote:h.dex&&h.dex.dex?h.dex.dex+" · "+(h.dex.quote||""):"explorer")}
+          </div>
+          ${h.addr==="native" ? `
+          <div class="panel">
+            <h3>Your position</h3>
+            <div class="pos-summary">
+              <div><div class="k">Balance</div><div class="v">${fmtAmt(h.amount)} ETH</div></div>
+              <div><div class="k">Value</div><div class="v">${fmtUsd(h.value)}</div></div>
+              <div><div class="k">Price</div><div class="v">${fmtPrice(h.price)}</div></div>
+              <div><div class="k">Type</div><div class="v">Native coin</div></div>
+            </div>
+            <div class="muted" style="font-size:12.5px;margin-top:8px">ETH is the chain's native coin (used for gas). Cost-basis reconstruction runs on tokens — native movements aren't ERC-20 transfers, so there's no per-buy price to average here.</div>
+          </div>` : `
+          <div class="panel">
+            <h3>Your position</h3>
+            <div class="muted" style="font-size:12.5px;margin-bottom:8px">Cost basis counts only your <b>current</b> stack — if you ever sold everything, buys before that are excluded.</div>
+            ${!ready?`<div class="muted"><span class="spin"></span> Reconstructing your buys from on-chain history…</div>`:renderPosition(h,pos)}
+          </div>
+          <div class="panel">
+            <h3 style="display:flex;justify-content:space-between;align-items:center">Activity
+              <span class="seg" id="perSeg">
+                <button data-p="24h" class="${period==='24h'?'active':''}">24h</button>
+                <button data-p="7d" class="${period==='7d'?'active':''}">7d</button>
+                <button data-p="30d" class="${period==='30d'?'active':''}">30d</button>
+                <button data-p="all" class="${period==='all'?'active':''}">All</button>
+              </span></h3>
+            <div id="activity">${ready?renderActivity(h,pos):`<div class="muted"><span class="spin"></span> loading…</div>`}</div>
+          </div>`}
+          <div class="foot">Live price, market cap, volume &amp; 1h/6h/24h change come from DEX pools (DexScreener). Balances, holders &amp; transfer history from the chain explorer.
+            Entry prices: exact from stablecoin legs (<span class="tag auto">auto</span>), or derived from the ETH you
+            paid × ETH’s price on the trade date (<span class="tag auto">≈ auto</span>); anything else you can type in
+            (<span class="tag manual">manual</span>). Not investment advice.</div>`;
+      }
+      const stat=(k,v)=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+      const statChg=(k,v)=>`<div class="stat"><div class="k">${k}</div><div class="v ${v==null?'':(v>=0?'up':'down')}">${v==null?"—":fmtPct(v)}</div></div>`;
+
+      function renderPosition(h, pos){
+        if(!pos || pos.balance<=1e-9){
+          return `<div class="muted">No current position reconstructed from transfer history${pos&&pos.txCount?` (${pos.txCount} transfers seen)`:""}. Your balance may have arrived by a method without on-chain transfers, or history is deeper than the fetch limit.</div>`;
+        }
+        const banner = (pos.resetDate && pos.resetDate>86400000)?`<div class="banner">↩︎ You fully exited this token on <b>${dstr(pos.resetDate)}</b>. Only buys after that — your current stack — are counted, exactly as you asked.</div>`:"";
+        const synth = pos.synthetic?`<div class="banner">History couldn’t fully establish your current stack, so it’s shown as one whole-balance position — type your average cost below and it saves permanently.</div>`:"";
+        // $5 rule: anything under $5 at purchase — reward drips AND tiny buys —
+        // is not P&L material, so it is HIDDEN entirely. One muted footnote can
+        // reveal them for auditing; by default they don't exist.
+        const isMicroLot = (l)=> !l.synthetic && !l.manual && (l.received
+          || (l.price!=null && l.amount*l.price < 5)
+          || (l.price==null && h.price!=null && l.amount*h.price < 5));
+        const microLots = pos.lots.filter(isMicroLot);
+        const realLots  = pos.lots.map((l,i)=>({l,i})).filter(x=>!isMicroLot(x.l));
+        const microNote = microLots.length ? `
+          <tr style="cursor:pointer" title="Click to show them"
+              onclick="this.closest('table').querySelectorAll('.driprow').forEach(function(r){r.style.display=r.style.display==='none'?'':'none'});var u=this.querySelector('u');if(u)u.textContent=u.textContent==='show'?'hide':'show'">
+          <td colspan="3"><span class="muted" style="font-size:11px">${microLots.length} micro transaction${microLots.length===1?"":"s"} under $5 hidden (drips &amp; dust — not in your P&L) · <u>show</u></span></td></tr>` +
+          microLots.map(l=>`
+          <tr class="driprow" style="display:none">
+            <td><span class="muted">↳</span> ${l.time>86400000?dstr(l.time):'<span class="muted">—</span>'} <a href="${EXPLORER}/tx/${l.tx}" target="_blank" class="muted">tx↗</a></td>
+            <td>${fmtAmt(l.amount)} ${h.symbol}</td>
+            <td>${l.received?'$0 <span class="tag auto">received</span>':(l.price!=null?`${fmtPrice(l.price)} <span class="tag auto">${l.est?"≈ auto":"auto"}</span>`:'<span class="muted">—</span>')}</td></tr>`).join("") : "";
+        const lotsRows = realLots.map(({l,i})=>`
+          <tr data-i="${i}">
+            <td>${l.synthetic?'<span class="muted">whole balance · set your avg</span>':`${l.time>86400000?dstr(l.time):'<span class="muted">—</span>'} <a href="${EXPLORER}/tx/${l.tx}" target="_blank" class="muted">tx↗</a>`}</td>
+            <td>${fmtAmt(l.amount)} ${h.symbol}</td>
+            <td>${l.price!=null && !l.manual
+                ? (l.received ? `$0 <span class="tag auto">received</span>` : `${fmtPrice(l.price)} <span class="tag auto">${l.est?"≈ auto":"auto"}</span>`)
+                : `<span class="pcur muted">$</span><input class="costin lotin" data-i="${i}" value="${l.manual&&l.price!=null?l.price:""}" placeholder="price paid" inputmode="decimal"/> <span class="tag manual">manual</span>`}</td>
+          </tr>`).join("") + microNote;
+        return `${banner}${synth}
+          <div class="pos-summary" id="posSum"></div>
+          <table class="lots"><thead><tr><th>Acquired</th><th>Amount</th><th>Your price / unit</th></tr></thead>
+          <tbody>${lotsRows || '<tr><td colspan="3"><span class="muted">no transactions</span></td></tr>'}</tbody></table>`;
+      }
+      function recomputeSummary(h){
+        if(!curPos) return;
+        // gather per-lot prices (auto or typed)
+        let costQty=0, cost=0, unknown=0;
+        curPos.lots.forEach((l,i)=>{
+          let p = l.price;
+          if(p==null){ const el=document.querySelector(`.lotin[data-i="${i}"]`); const v=el?parseFloat(el.value):NaN; if(!isNaN(v)&&v>0)p=v; }
+          if(p!=null){
+            const lotCost=l.amount*p;
+            if(lotCost < 5) return; // under $5 at purchase (incl. $0 drips) — excluded from P&L
+            cost+=lotCost; costQty+=l.amount;
+          } else unknown+=l.amount;
+        });
+        const avg = costQty>0?cost/costQty:null;
+        const bal = curPos.balance;
+        const value = h.price!=null?bal*h.price:null;
+        const basis = avg!=null?avg*costQty:null;
+        const pnl = (value!=null&&basis!=null)?(bal===costQty?value-basis:(h.price-avg)*costQty):null;
+        const pnlPct = (avg!=null && avg>0 && h.price!=null)?(h.price-avg)/avg*100:null; // no % against a $0 basis
+        const cls = pnl!=null?(pnl>=0?"up":"down"):"";
+        // keep the main-list P&L column in sync (incl. your manual entries)
+        h.avgCost = avg; h.costQty = costQty; h.costPartial = unknown>0;
+        store.set("ticker.cost6."+lc(addr)+"."+lc(h.addr), {avgCost:h.avgCost, costQty:h.costQty, costPartial:!!h.costPartial, bal:h.amount, ts:Date.now()});
+        const el=$("posSum"); if(!el) return;
+        el.innerHTML =
+          `<div><div class="k">Current balance</div><div class="v">${fmtAmt(bal)} ${h.symbol}</div></div>
+           <div><div class="k">Current value</div><div class="v">${fmtUsd(value)}</div></div>
+           <div><div class="k">Avg cost / unit</div><div class="v">${avg!=null?fmtPrice(avg):"—"}</div></div>
+           <div><div class="k">Unrealized P&L</div><div class="v ${cls}">${pnl!=null?(pnl>=0?"+":"−")+fmtUsd(Math.abs(pnl)).slice(0)+(pnlPct!=null?` <span style="font-size:12px">(${fmtPct(pnlPct)})</span>`:""):(curPos.lots.some(l=>l.received)?'<span class="muted">rewards only</span>':"enter a price")}</div></div>`;
+        if(unknown>0 && costQty>0){ el.innerHTML += `<div style="grid-column:1/-1;color:var(--muted);font-size:11.5px;margin-top:2px">${fmtAmt(unknown)} ${h.symbol} still need a purchase price — avg above covers the ${fmtAmt(costQty)} that are priced.</div>`; }
+      }
+      function renderActivity(h,pos){
+        const now=Date.now(), win={ "24h":864e5,"7d":6048e5,"30d":2592e6,"all":Infinity }[period];
+        const evAll = pos.events.filter(e=>now-e.time<=win).sort((a,b)=>b.time-a.time);
+        if(!evAll.length) return `<div class="muted">No ${h.symbol} transfers in this period.</div>`;
+        // $5 rule here too: drips and sub-$5 trades are hidden, not shown —
+        // a muted footnote reveals them on click if you ever want to audit
+        const isMicroEv = (e)=> e.received
+          || (e.price!=null && e.amount*e.price < 5)
+          || (e.price==null && h.price!=null && e.amount*h.price < 5);
+        const micro = evAll.filter(isMicroEv);
+        const ev = evAll.filter(e=>!isMicroEv(e));
+        const microNote = micro.length ? `<tr style="cursor:pointer" title="Click to show them"
+            onclick="this.closest('table').querySelectorAll('.driprow').forEach(function(r){r.style.display=r.style.display==='none'?'':'none'});var u=this.querySelector('u');if(u)u.textContent=u.textContent==='show'?'hide':'show'">
+          <td colspan="4"><span class="muted" style="font-size:11px">${micro.length} micro transaction${micro.length===1?"":"s"} under $5 hidden · <u>show</u></span></td></tr>` +
+          micro.map(e=>`<tr class="driprow" style="display:none">
+          <td><span class="muted">↳</span> ${e.time>86400000?dstr(e.time):'<span class="muted">—</span>'} <a href="${EXPLORER}/tx/${e.tx}" target="_blank" class="muted">↗</a></td>
+          <td style="text-align:right"><span class="chg ${e.received||e.type==='buy'?'up':'down'}">${e.received?'Reward / in':(e.type==='buy'?'Buy / in':'Sell / out')}</span></td>
+          <td>${fmtAmt(e.amount)} ${h.symbol}</td><td>${e.received?'$0':(e.price!=null?(e.est?"≈ ":"")+fmtPrice(e.price):"—")}</td></tr>`).join("") : "";
+        if(!ev.length && !micro.length) return `<div class="muted">No ${h.symbol} transfers in this period.</div>`;
+        return `<table class="lots"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>On-chain price</th></tr></thead><tbody>${
+          ev.map(e=>`<tr><td>${e.time>86400000?dstr(e.time):'<span class="muted">—</span>'} <a href="${EXPLORER}/tx/${e.tx}" target="_blank" class="muted">↗</a></td>
+            <td style="text-align:right"><span class="chg ${e.type==='buy'?'up':'down'}">${e.type==='buy'?'Buy / in':'Sell / out'}</span></td>
+            <td>${fmtAmt(e.amount)} ${h.symbol}</td><td>${e.price!=null?(e.est?"≈ ":"")+fmtPrice(e.price):"—"}</td></tr>`).join("")
+        }${microNote}</tbody></table>`;
+      }
+      function wireDetail(h){
+        $("back").onclick=()=>{ if(detailTimer){clearInterval(detailTimer);detailTimer=null;} $("detailview").style.display="none"; $("listview").style.display="block"; curToken=null; sortHoldings(); renderHoldings(); window.scrollTo(0,0); };
+        const cs = $("catSel");
+        if(cs){
+          cs.value = (store.get("ticker.cat."+lc(h.addr))||{}).cat || "";
+          cs.onchange = ()=>{
+            const v = cs.value;
+            if(v) store.set("ticker.cat."+lc(h.addr), {cat:v}); else store.del("ticker.cat."+lc(h.addr));
+            h.cat = v || classify({address_hash:h.addr, name:h.name});
+            if(v) h.impostor = false; // explicit user choice overrides the flag
+            openDetail(h.addr);
+          };
+        }
+        const seg=$("perSeg"); if(seg) seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{ period=b.dataset.p; seg.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b)); if(curPos)$("activity").innerHTML=renderActivity(h,curPos); });
+        document.querySelectorAll(".lotin").forEach(inp=>inp.oninput=()=>{
+          const i=parseInt(inp.dataset.i), l=curPos&&curPos.lots[i];
+          if(l){ // manual entries persist permanently, per trade
+            const v=parseFloat(inp.value);
+            const mk="ticker.man."+lc(addr)+"."+l.tx+"|"+lc(h.addr);
+            if(!isNaN(v)&&v>0){ store.set(mk,{p:v}); l.price=v; l.manual=true; }
+            else { store.del(mk); if(l.manual){ l.price=null; l.manual=false; } }
+          }
+          recomputeSummary(h);
+        });
+        recomputeSummary(h);
+      }
+
+      function showList(){ $("detailview").style.display="none"; $("listview").style.display="block"; }
+      function setStatus(html,cls){ $("status").innerHTML = cls?`<span class="${cls}">${html}</span>`:html; }
+
+      // ---------- wire ----------
+      // ---------- landing: rotating top-meme prices, Robinhood-style roll ----------
+      const LANDING_MEMES = [
+        // today's trending tier on the chain (main contracts, verified by liquidity)
+        {a:"0x39dBED3a2bd333467115dE45665cC57F813C4571", s:"PONS"},
+        {a:"0x45242320DBB855EeA8Fd36804C6487E10E97FCF9", s:"TENDIES"},
+        {a:"0x020bfC650A365f8BB26819deAAbF3E21291018b4", s:"CASHCAT"},
+        {a:"0x65A30dE61680cE240EeAB89104C4025892d1D4e9", s:"ASTEROID"},
+        {a:"0xc6911796042b15d7Fa4F6CDe69e245DdCd3d9c31", s:"VIRTUAL"},
+        {a:"0x303c2C6945ed73a4Ed46FfF5E0b309e78611A07D", s:"POW"},
+        {a:"0xe934e36A439C94017B64a3FecE66AF12099aBF50", s:"STONKBROKER"},
+        {a:"0x7FE995a80075dF3Dc8Ae11A9b82c7FE4202CD87f", s:"HMM"},
+        {a:"0x8Ff92566f2e81BDd68EDfAa8cde73942A723796b", s:"VEX"},
+        // the standing cast
+        {a:"0xd478E00fEc96b0e15d6E984385CEA43b4Da09d20", s:"RHPEPE"},
+        {a:"0x0Eda40e6ea2Aec43E523Aef5d6253145a9cEFE3D", s:"MINICAT"},
+        {a:"0xf314AEDeAaDCB02F33a13Eae471Fe06D13AA7777", s:"401K"},
+        {a:"0xD5c0de035b863ECce99036f5887e16619AA70c80", s:"CIH"},
+        {a:"0x417082C6bA46427215C586c3df6903DE88623ecB", s:"PEW"},
+        {a:"0x6685FB372e835441e431bD9a142AEA9fD963De5d", s:"TICKER"},
+      ];
+      let landTokens=[], landIdx=0, landSpin=null, landRef=null, odoPrev="", landCurSym=null;
+      // fixed shape: ALWAYS 5 digits after the decimal — every price has the
+      // same skeleton, so the columns just roll digit-to-digit, never rebuild.
+      // That's what keeps it from being choppy.
+      const landFmt = (n)=>{
+        if(n==null) return "$0.00000";
+        if(n>=1000) return "$"+n.toFixed(2);
+        return "$"+n.toFixed(5);
+      };
+      // odometer: every digit is a 0-9 column that ROLLS to its new value.
+      // Generic — the landing price AND the portfolio total both use it.
+      function odoRender(el, str){
+        if(!el) return;
+        const prev = el._odoPrev || "";
+        const same = prev.length===str.length &&
+          [...str].every((c,i)=>(/\d/.test(c))===(/\d/.test(prev[i])) && (/\d/.test(c) || c===prev[i]));
+        const setTargets=()=>{
+          const cols=el.querySelectorAll(".dstack"); let j=0;
+          [...str].forEach(c=>{ if(!/\d/.test(c)) return; const st=cols[j++]; if(st) st.style.transform=`translateY(${-parseInt(c,10)}em)`; });
+        };
+        if(same){ setTargets(); el._odoPrev=str; return; } // the normal case: pure roll
+        el.innerHTML = [...str].map(c=>/\d/.test(c)
+          ? `<span class="dcol"><span class="dstack">${Array.from({length:10},(_,d)=>`<span>${d}</span>`).join("")}</span></span>`
+          : `<span class="stat2">${c}</span>`).join("");
+        requestAnimationFrame(()=>requestAnimationFrame(setTargets)); // shape change: roll up from 0
+        el._odoPrev=str;
+      }
+      function renderOdo(str){ odoRender($("odo"), str); }
+      // the Ticker wordmark sits still — but every once in a while one random
+      // letter quietly rolls one lap and lands back on itself
+      const LOGO_WORD="Ticker", LOGO_AZ="abcdefghijklmnopqrstuvwxyz";
+      let logoIdleTimer=null;
+      function logoRoll(){
+        const el=$("svLogo"); if(!el) return;
+        // each letter is a tiny column: [self, a few random letters, self] —
+        // rolling the column one full lap "changes the letter to itself"
+        el.innerHTML = [...LOGO_WORD].map(chL=>{
+          const seq = chL===chL.toUpperCase()?LOGO_AZ.toUpperCase():LOGO_AZ;
+          const rnd = ()=>seq[Math.floor(Math.random()*seq.length)];
+          const cells=[chL, rnd(), rnd(), rnd(), chL];
+          return `<span class="lcol"><span class="lstack">${cells.map(c=>`<span>${c}</span>`).join("")}</span></span>`;
+        }).join("");
+        // lock every column to ITS OWN letter's natural width — otherwise the
+        // widest random letter in the stack sets the column width and the word
+        // spaces out unevenly ("T   i cke r"). Re-measured once the webfont lands.
+        const sizeLogoCols = ()=>{
+          const meas=document.createElement("span");
+          meas.style.cssText="position:absolute;visibility:hidden;white-space:pre;font:inherit";
+          el.appendChild(meas);
+          const fs=parseFloat(getComputedStyle(el).fontSize)||64;
+          el.querySelectorAll(".lcol").forEach((col,i)=>{
+            meas.textContent=LOGO_WORD[i];
+            col.style.width=(meas.getBoundingClientRect().width/fs).toFixed(4)+"em";
+          });
+          meas.remove();
+        };
+        sizeLogoCols();
+        if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if(el.querySelector(".lcol")) sizeLogoCols(); });
+        if(logoIdleTimer) clearInterval(logoIdleTimer);
+        logoIdleTimer = setInterval(()=>{
+          if(!document.body.classList.contains("pre")) return; // only while the search page is up
+          if(Math.random()<0.5) return; // …and only sometimes — it's a wink, not a show
+          const stacks = el.querySelectorAll(".lstack");
+          if(!stacks.length) return;
+          const st = stacks[Math.floor(Math.random()*stacks.length)];
+          if(st._rolling) return;
+          st._rolling = true;
+          st.style.transition = "transform .9s cubic-bezier(.3,.7,.25,1)";
+          st.style.transform = "translateY(-4em)"; // one lap → same letter
+          setTimeout(()=>{
+            st.style.transition = "none";
+            st.style.transform = "translateY(0)"; // silent reset to the top copy
+            void st.offsetHeight;
+            st.style.transition = "";
+            st._rolling = false;
+          }, 950);
+        }, 2600);
+      }
+      // the TOP 20 coins on the chain, discovered live from the DEX index
+      // (every WETH/USDG pair it knows + our address books), then shuffled —
+      // each cycle shows random tickers from that top 20
+      async function landingRefresh(){
+        try{
+          const found = new Map();
+          const digest = (pairs)=>{ for(const p of (pairs||[])){
+            if(!p || p.chainId!=="robinhood") continue;
+            const base = lc((p.baseToken&&p.baseToken.address)||""); if(!base) continue;
+            const liq = (p.liquidity&&num(p.liquidity.usd))||0;
+            const vol = num(p.volume&&p.volume.h24)||0;
+            const tx24 = (p.txns&&p.txns.h24)?((num(p.txns.h24.buys)||0)+(num(p.txns.h24.sells)||0)):0;
+            // popularity bar: real liquidity, real volume, real TRADERS —
+            // coins nobody recognizes don't clear this
+            if(liq<10000 || vol<5000 || tx24<30) continue;
+            const cur = found.get(base);
+            if(!cur || vol>cur.vol) found.set(base, {addr:base, sym:((p.baseToken.symbol)||"").toUpperCase(), price:p.priceUsd?parseFloat(p.priceUsd):null, ch:num(p.priceChange&&p.priceChange.h24), vol, tx24, img:(p.info&&p.info.imageUrl)||""});
+          } };
+          // harvest every robinhood-chain pair the public index will surface —
+          // quote symbols + chain-flavored terms — then rank by 24h volume:
+          // the same names, in the same tier, as the site's first page
+          for(const q of ["WETH","USDG","RH","robinhood"]){
+            try{ const d = await fetchJson("https://api.dexscreener.com/latest/dex/search?q="+q); digest(d.pairs); }catch{}
+          }
+          try{
+            const r = await dexPrices([...new Set([...LANDING_MEMES.map(m=>lc(m.a)), ...[...REWARD_ADDRS].slice(0,22)])]);
+            r.map.forEach((d,base)=>{
+              if(d.price==null) return;
+              const vol=(d.vol&&d.vol.h24)||0, liq=d.liq||0;
+              if(liq<10000 || vol<5000) return; // same popularity bar as the search harvest
+              const cur=found.get(base);
+              if(!cur || vol>cur.vol) found.set(base, {addr:base, sym:((d.sym)||"").toUpperCase()||"?", price:d.price, ch:(d.ch&&d.ch.h24!=null)?d.ch.h24:null, vol, tx24:null, img:d.img||""});
+            });
+          }catch{}
+          const top = [...found.values()]
+            .filter(t=>t.price!=null && t.sym && !["WETH","USDG","USDE","ETH"].includes(t.sym))
+            .filter(t=>t.img || t.vol>=25000) // no logo? then only if it's genuinely hot
+            .sort((a,b)=>b.vol-a.vol).slice(0,12); // the recognizable tier only
+          if(top.length){
+            for(let i=top.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [top[i],top[j]]=[top[j],top[i]]; } // random order within the top 20
+            landTokens = top;
+          }
+        }catch{}
+      }
+      function landingApply(t){
+        $("landSym").textContent = t.sym;
+        const ch=$("landChg");
+        if(t.ch!=null){ ch.textContent=(t.ch>=0?"▲ ":"▼ ")+Math.abs(t.ch).toFixed(2)+"% today"; ch.className="land-chg "+(t.ch>=0?"pos":"neg"); }
+        else ch.textContent="";
+      }
+      // logo swap that can't pop: the next image is PRELOADED off-screen and
+      // only fades in once it's fully ready; if it never loads, the space is
+      // simply held empty — the stage never jumps
+      function setLandLogo(t){
+        const lg=$("landLogo"); if(!lg) return;
+        lg.dataset.addr = t.addr || ""; // click-to-copy knows which coin is up
+        const src = t.img || (t.addr ? ddLogo(t.addr) : "");
+        if(!src){ lg.style.opacity="0"; return; }
+        const im = new Image();
+        im.onload = ()=>{ if(landCurSym===t.sym){ lg.src=src; lg.style.opacity="1"; } };
+        im.onerror = ()=>{ if(landCurSym===t.sym) lg.style.opacity="0"; };
+        im.src = src;
+      }
+      function landingShow(){
+        if(!landTokens.length) return;
+        const t = landTokens[landIdx % landTokens.length];
+        const sym=$("landSym"), ch=$("landChg"), lg=$("landLogo");
+        if(landCurSym!==t.sym && sym){
+          sym.style.opacity="0"; if(ch) ch.style.opacity="0"; if(lg) lg.style.opacity="0"; // labels & logo ease out…
+          landCurSym=t.sym;
+          setTimeout(()=>{
+            if(landCurSym!==t.sym) return; // rotation already moved on
+            landingApply(t);
+            sym.style.opacity="1"; if(ch) ch.style.opacity="1";
+            setLandLogo(t); // …and the logo eases back only when its image is ready
+          }, 220);
+        } else { landingApply(t); setLandLogo(t); landCurSym=t.sym; }
+        renderOdo(landFmt(t.price)); // digits roll the whole time
+      }
+      function landingDone(){
+        document.body.classList.remove("landing-on");
+        if(landSpin){ clearInterval(landSpin); landSpin=null; }
+        if(landRef){ clearInterval(landRef); landRef=null; }
+      }
+      async function landingBoot(){
+        const st=$("landStart");
+        if(st) st.onclick=()=>{ landingDone(); document.body.classList.add("pre"); logoRoll(); const ab=$("addrBig"); if(ab) ab.focus(); window.scrollTo(0,0); };
+        const ll=$("landLogo");
+        if(ll) ll.onclick=()=>copyText(ll.dataset.addr);
+        if(!document.body.classList.contains("landing-on")) return;
+        renderOdo("$0.00000"); // placeholder rolls straight into the first live price
+        await landingRefresh();
+        landingShow();
+        landSpin = setInterval(()=>{ if(document.hidden || !document.body.classList.contains("landing-on")) return; landIdx++; landingShow(); }, 5000);
+        landRef  = setInterval(()=>{ if(!document.hidden && document.body.classList.contains("landing-on")) landingRefresh(); }, 30000);
+      }
+      landingBoot();
+
+      // --- pluggable RPC: your own node or a provider key (QuickNode, GetBlock,
+      // Dwellir…) gets you private rate limits — paste the https endpoint here
+      function renderRpcLine(){
+        const el=$("rpcline"); if(!el) return;
+        el.innerHTML = `RPC: ${RPC===DEFAULT_RPC?"public endpoint":"custom endpoint ✓"} · <u style="cursor:pointer" id="rpcEdit">change</u>${RPC!==DEFAULT_RPC?' · <u style="cursor:pointer" id="rpcReset">use public</u>':""}`;
+        $("rpcEdit").onclick=()=>{
+          el.innerHTML = `<input id="rpcIn" spellcheck="false" placeholder="https://your-rpc-endpoint…" value="${RPC===DEFAULT_RPC?"":RPC}" style="width:300px;max-width:70vw;border:none;border-radius:8px;padding:5px 9px;font-size:11.5px"/> <button id="rpcSave" style="border:none;border-radius:8px;padding:5px 11px;cursor:pointer;font-weight:600">Save</button> <u style="cursor:pointer" id="rpcCancel">cancel</u>`;
+          $("rpcSave").onclick=()=>{
+            const v=($("rpcIn").value||"").trim();
+            if(v && /^https:\/\//.test(v)){ RPC=v; try{ localStorage.setItem("ticker.rpc", JSON.stringify({url:v})); }catch{} }
+            else { RPC=DEFAULT_RPC; try{ localStorage.removeItem("ticker.rpc"); }catch{} }
+            renderRpcLine();
+            if(addr) loadWallet(addr); // reload straight away on the new endpoint
+          };
+          $("rpcCancel").onclick=renderRpcLine;
+        };
+        const rr=$("rpcReset");
+        if(rr) rr.onclick=()=>{ RPC=DEFAULT_RPC; try{ localStorage.removeItem("ticker.rpc"); }catch{} renderRpcLine(); if(addr) loadWallet(addr); };
+      }
+      renderRpcLine();
+      $("track").onclick=()=>loadWallet($("addr").value);
+      $("addr").addEventListener("keydown",e=>{ if(e.key==="Enter")loadWallet($("addr").value); });
+      // centered search page (pre-wallet state) — three beats into the app:
+      // collapse the search page, raise the green into the hero's exact spot,
+      // then populate. The wallet load runs underneath from beat one.
+      let warping=false;
+      function collapseThenRise(v){
+        if(warping) return; warping=true;
+        const sv=$("searchview"), pill=document.querySelector(".sv-pill");
+        const startRect = pill ? pill.getBoundingClientRect()
+                               : {left:innerWidth/2-170, top:innerHeight*.55, width:340, height:54};
+        sv.classList.add("collapse"); // beat 1 — everything folds away
+        setTimeout(()=>{
+          $("addr").value=v; loadWallet(v); // page swaps while blank; fetch begins
+          const hero=document.querySelector("header.hero"), lv=$("listview");
+          if(!hero){ warping=false; return; }
+          hero.classList.add("veil"); if(lv) lv.classList.add("veil2");
+          const hr=hero.getBoundingClientRect();
+          const ov=document.createElement("div"); ov.className="riser";
+          ov.style.left=startRect.left+"px"; ov.style.top=startRect.top+"px";
+          ov.style.width=startRect.width+"px"; ov.style.height=startRect.height+"px";
+          document.body.appendChild(ov);
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{ // beat 2 — the green rises
+            ov.style.left=hr.left+"px"; ov.style.top=hr.top+"px";
+            ov.style.width=hr.width+"px"; ov.style.height=hr.height+"px";
+          }));
+          setTimeout(()=>{ // beat 3 — the information populates
+            hero.classList.remove("veil"); hero.classList.add("arrive");
+            if(lv){ lv.classList.remove("veil2"); lv.classList.add("arrive2"); }
+            ov.classList.add("gone");
+            setTimeout(()=>{
+              ov.remove(); sv.classList.remove("collapse");
+              hero.classList.remove("arrive"); if(lv) lv.classList.remove("arrive2");
+              warping=false;
+            }, 750);
+          }, 540);
+        }, 290);
+      }
+      const goTrack = ()=>{
+        const v=$("addrBig").value.trim(); if(!v) return;
+        if(!/^0x[0-9a-fA-F]{40}$/.test(v)){ toast("That doesn't look like a 0x wallet address"); return; }
+        collapseThenRise(v);
+      };
+      $("track2").onclick = goTrack;
+      $("addrBig").addEventListener("keydown",e=>{ if(e.key==="Enter") goTrack(); });
+      // custom chain picker (one chain today; the menu is ready for more)
+      const cpk=$("chainPick"), cpb=$("cpBtn");
+      if(cpb) cpb.onclick=(e)=>{ e.stopPropagation(); cpk.classList.toggle("open"); };
+      document.addEventListener("click",()=>{ if(cpk) cpk.classList.remove("open"); });
+      document.querySelectorAll(".cp-item[data-chain]").forEach(it=>it.onclick=(e)=>{ e.stopPropagation(); cpk.classList.remove("open"); });
+      $("dustchk").onchange=(e)=>{ hideDust=e.target.checked; renderRows(); };
+      // ---- CSV export: every reconstructed transaction, ready for tax software ----
+      function exportCsv(){
+        if(!addr || !holdings.length){ toast("Load a wallet first"); return; }
+        const rows=[["Date (UTC)","Token","Contract","Type","Amount","Price per unit (USD)","Value (USD)","Price source","Tx hash","Explorer link"]];
+        let nTok=0;
+        holdings.forEach(h=>{
+          if(h.addr==="native" || h.suspect) return;
+          let pos=null; try{ pos = buildPosition(h.addr); }catch{}
+          if(!pos || !pos.events || !pos.events.length) return;
+          nTok++;
+          pos.events.forEach(e=>{
+            const dt  = e.time>86400000 ? new Date(e.time).toISOString().replace("T"," ").slice(0,19) : "";
+            const p   = e.price!=null ? e.price : "";
+            const val = e.price!=null ? (e.amount*e.price).toFixed(2) : "";
+            const src = e.received ? "reward/airdrop ($0 basis)" : e.manual ? "manual entry" : e.est ? "derived (approx)" : e.price!=null ? "exchange-recorded" : "unpriced";
+            rows.push([dt, h.symbol, h.addr, e.received?"reward":(e.type==="buy"?"buy":"sell"), e.amount, p, val, src, e.tx, EXPLORER+"/tx/"+e.tx]);
+          });
+        });
+        if(rows.length===1){ toast("No history loaded yet — let the P&L column finish, then export"); return; }
+        const esc=(v)=>{ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+        const csv = rows.map(r=>r.map(esc).join(",")).join("\r\n");
+        const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8"});
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(blob);
+        a.download=`ticker-transactions-${lc(addr).slice(2,8)}-${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); }catch{} }, 4000);
+        toast(`Exported ${rows.length-1} transactions · ${nTok} tokens`);
+      }
+      $("exportBtn").onclick = exportCsv;
+
+      // the whole list re-prices every 30s (one batched RPC), so nothing goes stale.
+      // HIDDEN TAB = TOTAL SILENCE: a tab left open overnight must not spend
+      // your IP's rate-limit budget while nobody is looking.
+      let refreshTick=0;
+      setInterval(async ()=>{
+        if(document.hidden) return;
+        if(!holdings.length || $("detailview").style.display==="block") return;
+        refreshTick++;
+        if(refreshTick%3===1){ try{ const st=await api(`/stats`); if(st && st.coin_price!=null) ethUsd=parseFloat(st.coin_price); }catch{} }
+        const n = await refreshPrices(holdings.filter(h=>h.price!=null)).catch(()=>0);
+        const e = holdings.find(h=>h.addr==="native");
+        if(e && ethUsd!=null){ e.price=ethUsd; e.value=e.amount*ethUsd; }
+        if(n || e){ sortHoldings(); renderHoldings(); renderStatus(); }
+      }, 30000);
+    </script>
+  </body>
+</html>
